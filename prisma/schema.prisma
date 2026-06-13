@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+// ─────────────────────────────────────────
+// AUTH TABLES (Better Auth required shape)
+// ─────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  phone         String?
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions  Session[]
+  accounts  Account[]
+  orders    Order[]
+  cartItems CartItem[]
+  reviews   Review[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// ─────────────────────────────────────────
+// CATALOG
+// ─────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String? // URL to brand logo image
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  // reference price for listing pages before variant is selected
+  // always set to the lowest variant price — update when variants change
+  basePrice   Decimal  @db.Decimal(10, 2)
+  images      String[]
+  categoryId  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category   Category             @relation(fields: [categoryId], references: [id])
+  variants   Variant[]
+  specGroups SpecificationGroup[]
+  reviews    Review[]
+  brand      Brand?               @relation(fields: [brandId], references: [id])
+  brandId    String?
+  featured   Boolean              @default(false)
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([isActive])
+  @@map("products")
+}
+
+// ─────────────────────────────────────────
+// VARIANTS
+// ─────────────────────────────────────────
+
+// Each product has one or more variants.
+// Single-option products get one variant named "Default".
+// Examples: "Small", "Roth 0.022", "Shade A2", "Default"
+model Variant {
+  id        String   @id @default(cuid())
+  productId String
+  name      String // "Small" / "Shade A2" / "Default"
+  sku       String?  @unique
+  price     Decimal  @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  image     String? // optional variant-specific image
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, name]) // no duplicate variant names per product
+  @@index([productId])
+  @@index([isActive])
+  @@map("variants")
+}
+
+// ─────────────────────────────────────────
+// SPECIFICATIONS
+// ─────────────────────────────────────────
+
+// Groups specs into sections shown as accordions on the product page
+// e.g. "Physical Properties", "Clinical", "Material", "Packaging"
+model SpecificationGroup {
+  id        String   @id @default(cuid())
+  productId String
+  name      String // "Physical Properties", "Clinical", "Material"
+  position  Int // display order — lower = shown first
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  specs   Specification[]
+
+  @@unique([productId, name]) // no duplicate group names per product
+  @@index([productId, position])
+  @@map("specification_groups")
+}
+
+model Specification {
+  id        String   @id @default(cuid())
+  groupId   String
+  key       String // "Slot Size", "Max Load", "Cure Time"
+  value     String // "0.022 inch", "180kg", "20s"
+  position  Int // display order within the group
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group SpecificationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, key]) // no duplicate keys within the same group
+  @@index([groupId, position])
+  @@map("specifications")
+}
+
+// ─────────────────────────────────────────
+// REVIEWS
+// ─────────────────────────────────────────
+
+model Review {
+  id               String   @id @default(cuid())
+  userId           String
+  productId        String
+  rating           Int // 1–5, enforced via Zod at API layer
+  title            String?
+  body             String?
+  // set server-side — true if user has a DELIVERED order containing this product
+  verifiedPurchase Boolean  @default(false)
+  // admin can hide a review without deleting it
+  isVisible        Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId]) // one review per user per product
+  @@index([productId])
+  @@map("reviews")
+}
+
+// ─────────────────────────────────────────
+// CART (logged-in users only)
+// guests use Zustand + localStorage
+// on login: merge localStorage cart into DB, clear localStorage
+// ─────────────────────────────────────────
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  variantId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, variantId]) // one row per user per variant
+  @@map("cart_items")
+}
+
+// ─────────────────────────────────────────
+// COUPONS
+// ─────────────────────────────────────────
+
+model Coupon {
+  id             String       @id @default(cuid())
+  code           String       @unique // "DENTAL20", "WELCOME50"
+  type           DiscountType
+  value          Decimal      @db.Decimal(10, 2) // 20 = 20% or 20 EGP
+  minOrderAmount Decimal?     @db.Decimal(10, 2) // minimum subtotal to apply coupon
+  maxUses        Int? // null = unlimited
+  usedCount      Int          @default(0)
+  expiresAt      DateTime? // null = never expires
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  orders Order[]
+
+  @@map("coupons")
+}
+
+// ─────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────
+
+model Order {
+  id String @id @default(cuid())
+
+  // userId null = guest order
+  userId     String?
+  guestEmail String?
+  guestName  String?
+  guestPhone String?
+
+  status OrderStatus @default(PENDING)
+
+  // always calculated server-side — never trust client
+  subtotal       Decimal @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
+
+  // coupon
+  couponId   String?
+  // denormalized — preserved if coupon is deleted later
+  couponCode String?
+
+  // shipping info inline — no address book for MVP
+  shippingName    String
+  shippingPhone   String
+  shippingAddress String
+  shippingCity    String
+  shippingNotes   String?
+
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User?       @relation(fields: [userId], references: [id])
+  coupon Coupon?     @relation(fields: [couponId], references: [id])
+  items  OrderItem[]
+
+  @@index([userId])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  variantId String
+
+  // denormalized snapshots — frozen at purchase time
+  // so renames/price changes never affect historical orders
+  productName String
+  variantName String
+  unitPrice   Decimal @db.Decimal(10, 2)
+  totalPrice  Decimal @db.Decimal(10, 2) // unitPrice × quantity
+
+  quantity Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([variantId])
+  @@map("order_items")
+}
