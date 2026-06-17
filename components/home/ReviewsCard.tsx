@@ -34,7 +34,7 @@ export function ReviewCard({ review }: { review: Testimonial }) {
                 <div className="flex items-center gap-3 border-t border-border pt-4">
                     <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-full border border-border">
                         {review.user.image ? (
-                            <Image unoptimized src={review.user.image} alt={review.user.name} fill className="object-cover" />
+                            <Image src={review.user.image} alt={review.user.name} fill className="object-cover" />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center bg-primary">
                                 <span className="text-xs font-semibold text-primary-foreground">

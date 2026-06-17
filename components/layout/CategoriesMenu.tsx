@@ -62,7 +62,6 @@ export async function CategoriesMenu() {
                                                         alt={brand.name}
                                                         width={44}
                                                         height={44}
-                                                        unoptimized
                                                         className="rounded object-contain"
                                                     />
                                                 ) : (

@@ -1,14 +1,28 @@
 import { Testimonial } from "@/lib/types";
+import prisma from "@/lib/prisma";
+
 export async function getTestimonials(limit = 6): Promise<Testimonial[]> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/reviews?limit=${limit}&minRating=4`,
-    { next: { revalidate: 300 } },
-  );
+  const reviews = await prisma.review.findMany({
+    where: {
+      isVisible: true,
+      rating: { gte: 4 },
+    },
+    orderBy: [{ rating: "desc" }, { createdAt: "desc" }],
+    take: limit,
+    select: {
+      id: true,
+      rating: true,
+      title: true,
+      body: true,
+      verifiedPurchase: true,
+      createdAt: true,
+      user: { select: { id: true, name: true, image: true } },
+      product: { select: { id: true, name: true, slug: true } },
+    },
+  });
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch testimonials");
-  }
-
-  const data = await res.json();
-  return data.reviews;
+  return reviews.map((review) => ({
+    ...review,
+    createdAt: review.createdAt.toISOString(),
+  }));
 }
