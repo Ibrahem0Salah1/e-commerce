@@ -4,7 +4,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { getFeaturedProducts } from "@/lib/products";
 
 export async function FeaturedProducts() {
-    const products = await getFeaturedProducts(8);
+    const products = await getFeaturedProducts();
 
     if (products.length === 0) return null;
 
@@ -22,7 +22,7 @@ export async function FeaturedProducts() {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 grid-rows-[auto_1fr]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
                 {products.map((product) => (
                     <ProductCard key={product.id} product={product} />
                 ))}

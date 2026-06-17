@@ -146,7 +146,6 @@ export function MobileMenu({
                                                         alt={brand.name}
                                                         width={18}
                                                         height={18}
-                                                        unoptimized
                                                         className="rounded object-contain"
                                                     />
                                                 ) : (
