@@ -13,23 +13,23 @@ import { useEffect, useState } from "react";
 export function ProductCard({ product }: { product: ProductListItem }) {
     const { addItem } = useCart();
     const [added, setAdded] = useState(false);
-    const variant = product.variants[0];
-    const price = variant?.price ?? product.basePrice;
-    const outOfStock = variant ? variant.stock <= 0 : false;
+    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const selectedVariant = product.variants.find((v) => v.id === (selectedVariantId ?? product.variants[0]?.id)) ?? product.variants[0];
+    const price = selectedVariant?.price ?? product.basePrice;
+    const outOfStock = selectedVariant ? selectedVariant.stock <= 0 : false;
 
     const handleAddToCart = () => {
-        if (!variant || outOfStock) return;
+        if (!selectedVariant || outOfStock) return;
         addItem({
-            variantId: variant.id,
+            variantId: selectedVariant.id,
             productId: product.id,
             slug: product.slug,
             name: product.name,
-            price: Number(variant.price),
+            price: Number(selectedVariant.price),
             image: product.images[0] ?? "",
-            variantName: variant.name,
+            variantName: selectedVariant.name,
         });
         setAdded(true);
-        setTimeout(() => setAdded(false), 1500);
     };
     useEffect(() => {
         if (!added) return;
@@ -39,7 +39,7 @@ export function ProductCard({ product }: { product: ProductListItem }) {
 
     return (
         <Card className="group flex h-full flex-col overflow-hidden border-border transition-shadow hover:shadow-md">
-            <Link href={`/shop/${product.slug}`} className="relative block aspect-square overflow-hidden bg-secondary/40">
+            <Link href={`/shop/${product.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-secondary/40">
                 <Image
                     src={product.images[0] ?? "/placeholder-product.png"}
                     alt={product.name}
@@ -59,42 +59,65 @@ export function ProductCard({ product }: { product: ProductListItem }) {
                 )}
             </Link>
 
-            <CardContent className="flex flex-1 flex-col gap-1.5 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {product.category.name}
-                </p>
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden px-4 pb-0 pt-3">
                 <Link href={`/shop/${product.slug}`}>
                     <h3 className="line-clamp-2 text-sm font-medium text-foreground transition-colors hover:text-primary">
                         {product.name}
                     </h3>
                 </Link>
 
-                {product.rating !== null ? (
+                {product.description && (
+                    <p className="line-clamp-1 text-xs text-muted-foreground">
+                        {product.description}
+                    </p>
+                )}
+
+                {product.variants.length > 1 && (
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                        {product.variants.slice(0, 4).map((v) => {
+                            const isSelected = selectedVariant?.id === v.id;
+                            const isOut = v.stock <= 0;
+                            return (
+                                <button
+                                    key={v.id}
+                                    type="button"
+                                    disabled={isOut}
+                                    onClick={() => setSelectedVariantId(v.id)}
+                                    className={`cursor-pointer rounded-md border px-1.5 py-0.5 text-[10px] transition-colors ${isSelected ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-foreground/30"} ${isOut ? "cursor-not-allowed opacity-40" : ""}`}
+                                >
+                                    {v.name}
+                                </button>
+                            );
+                        })}
+                        {product.variantCount > 4 && (
+                            <span className="text-[10px] text-muted-foreground">
+                                +{product.variantCount - 4}
+                            </span>
+                        )}
+                    </div>
+                )}
+
+                {product.rating !== null && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Star className="h-3.5 w-3.5 fill-primary text-primary" />
+                        <Star className="h-3 w-3 fill-primary text-primary" />
                         <span className="font-medium text-foreground">{product.rating}</span>
                         <span>({product.reviewCount})</span>
                     </div>
-                ) : (
-                    <div className="h-[18px]" />
                 )}
             </CardContent>
 
-            <CardFooter className="flex items-center justify-between border-t border-border p-4 pt-3">
-                <div>
-                    {product.variantCount > 1 && (
-                        <span className="text-xs text-muted-foreground">From </span>
-                    )}
-                    <span className="text-base font-semibold text-foreground">
+            <CardFooter className="flex items-center justify-between px-4 pb-4 pt-3">
+                <div className="flex items-baseline gap-1">
+                    <span className="text-sm font-semibold text-foreground">
                         {price.toLocaleString()}
-                        <span className="ml-1 text-xs font-normal text-muted-foreground">EGP</span>
                     </span>
+                    <span className="text-xs text-muted-foreground">EGP</span>
                 </div>
                 <Button
                     size="sm"
-                    disabled={outOfStock || !variant}
+                    disabled={outOfStock || !selectedVariant}
                     onClick={handleAddToCart}
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="cursor-pointer min-w-[100px]"
                 >
                     <ShoppingCart className={`size-3.5 transition-all duration-300 ${added ? "scale-0 opacity-0" : ""}`} />
                     <span className="relative">

@@ -36,7 +36,7 @@ export function CartButton() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
+      <SheetContent side="right" className="flex flex-col data-[side=right]:w-[85%] sm:data-[side=right]:w-3/4">
         <SheetHeader>
           <SheetTitle>
             Cart {totalItems > 0 && `(${totalItems})`}
@@ -48,7 +48,7 @@ export function CartButton() {
             <p className="text-sm text-muted-foreground">Your cart is empty.</p>
           </div>
         ) : (
-          <div className="flex-1 space-y-3 overflow-y-auto px-4">
+          <div className="flex-1 space-y-3 overflow-y-auto mx-1">
             {items.map((item) => (
               <div
                 key={item.variantId}
