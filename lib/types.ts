@@ -30,6 +30,7 @@ export type ProductListItem = {
   id: string;
   name: string;
   slug: string;
+  description: string | null;
   basePrice: number;
   images: string[];
   featured: boolean;

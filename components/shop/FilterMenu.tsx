@@ -16,7 +16,6 @@ import {
   Sheet,
   SheetClose,
   SheetContent,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -74,7 +73,7 @@ export function FilterMenu({
           <SheetTitle>Filters</SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-2 space-y-4">
           <div className="space-y-2">
             <Label>Category</Label>
             <Select
@@ -169,19 +168,19 @@ export function FilterMenu({
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        <SheetFooter className="mt-6 flex-row gap-2">
-          <Button variant="outline" size="sm" onClick={clear}>
-            <RotateCcw />
-            Reset
-          </Button>
-          <SheetClose asChild>
-            <Button size="sm" onClick={apply}>
-              Apply filters
+          <div className="flex flex-row gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={clear} className="flex-1">
+              <RotateCcw />
+              Reset
             </Button>
-          </SheetClose>
-        </SheetFooter>
+            <SheetClose asChild>
+              <Button size="sm" onClick={apply} className="flex-1">
+                Apply filters
+              </Button>
+            </SheetClose>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );

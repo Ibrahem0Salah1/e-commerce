@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         slug: true,
+        description: true,
         basePrice: true,
         images: true,
         featured: true,
@@ -48,7 +49,6 @@ export async function GET(request: NextRequest) {
         variants: {
           where: { isActive: true },
           orderBy: { price: "asc" },
-          take: 1,
           select: { id: true, name: true, price: true, stock: true },
         },
         reviews: { select: { rating: true } },
