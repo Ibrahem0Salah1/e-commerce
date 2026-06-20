@@ -65,23 +65,29 @@ export type ProductDetail = {
   featured: boolean;
   category: { id: string; name: string; slug: string };
   brand: { id: string; name: string; slug: string; logo: string | null } | null;
-  variants: { id: string; name: string; sku: string | null; price: number; stock: number; image: string | null; isActive: boolean }[];
+  variants: {
+    id: string;
+    name: string;
+    sku: string | null;
+    price: number;
+    stock: number;
+    image: string | null;
+    isActive: boolean;
+  }[];
   specs: { name: string; specs: { key: string; value: string }[] }[];
-  reviews: { id: string; rating: number; title: string | null; body: string | null; createdAt: Date; user: { name: string; image: string | null } }[];
+  reviews: {
+    id: string;
+    rating: number;
+    title: string | null;
+    body: string | null;
+    createdAt: Date;
+    user: { name: string; image: string | null };
+  }[];
   reviewCount: number;
   rating: number | null;
 };
 
 //product filters (used by getProducts client fn)
-export type ProductFilters = {
-  category?: string;
-  brand?: string;
-  q?: string;
-  featured?: boolean;
-  sort?: "price_asc" | "price_desc" | "name";
-  page?: number;
-  limit?: number;
-};
 
 export type ProductsResult = {
   products: ProductListItem[];
@@ -105,18 +111,12 @@ export type Testimonial = {
   product: { id: string; name: string; slug: string };
 };
 
-const filtersSchema = z.object({
-  category: z.string().optional(),
-  brand: z.string().optional(),
-  q: z.string().optional(),
-  featured: z.coerce.boolean().optional(),
+export const filtersSchema = z.object({
+  category: z.string().default(""),
+  brand: z.string().default(""),
+  featured: z.boolean().default(false),
   sort: z.enum(["price_asc", "price_desc", "name"]).default("name"),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(12),
+  q: z.string().default(""),
 });
 
-// const parsed = filtersSchema.safeParse(Object.fromEntries(params));
-// if (!parsed.success) {
-//   return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-// }
-// const { category, brand, q, featured, sort, page, limit } = parsed.data;
+export type FiltersFormFields = z.infer<typeof filtersSchema>;

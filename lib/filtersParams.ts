@@ -4,6 +4,7 @@ import {
   parseAsInteger,
   parseAsString,
   parseAsStringEnum,
+  ParserWithOptionalDefault,
 } from "nuqs/server";
 
 export const filtersParsers = {

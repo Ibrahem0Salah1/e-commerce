@@ -11,7 +11,7 @@ export default async function ShopPage() {
 
   return (
     <div className="space-y-4">
-      <ShopBreadcrumbs />
+      <ShopBreadcrumbs categories={categories} brands={brands} />
       <div className="flex items-center gap-2">
         <SearchInput />
         <div className="lg:hidden">
