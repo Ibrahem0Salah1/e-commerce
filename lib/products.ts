@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
-import type { ProductDetail, ProductFilters, ProductListItem, ProductsResult } from "./types";
+import type { ProductDetail, ProductListItem, ProductsResult } from "./types";
+import { ProductFilters } from "./filtersParams";
 
 export async function getProducts(
   filters: ProductFilters,
@@ -21,7 +22,9 @@ export async function getProducts(
   return res.json();
 }
 
-export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
+export async function getProductBySlug(
+  slug: string,
+): Promise<ProductDetail | null> {
   const product = await prisma.product.findUnique({
     where: { slug, isActive: true },
     select: {
@@ -37,7 +40,15 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
       variants: {
         where: { isActive: true },
         orderBy: { price: "asc" },
-        select: { id: true, name: true, sku: true, price: true, stock: true, image: true, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          price: true,
+          stock: true,
+          image: true,
+          isActive: true,
+        },
       },
       specGroups: {
         orderBy: { position: "asc" },
@@ -53,7 +64,14 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
         where: { isVisible: true },
         orderBy: { createdAt: "desc" },
         take: 10,
-        select: { id: true, rating: true, title: true, body: true, createdAt: true, user: { select: { name: true, image: true } } },
+        select: {
+          id: true,
+          rating: true,
+          title: true,
+          body: true,
+          createdAt: true,
+          user: { select: { name: true, image: true } },
+        },
       },
       _count: { select: { reviews: true } },
     },
@@ -62,9 +80,12 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   if (!product) return null;
 
   const reviews = product.reviews;
-  const avgRating = reviews.length > 0
-    ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
-    : null;
+  const avgRating =
+    reviews.length > 0
+      ? Math.round(
+          (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10,
+        ) / 10
+      : null;
 
   return {
     ...product,
@@ -79,7 +100,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
 
 export async function getFeaturedProducts(): Promise<ProductListItem[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/products?featured=true&limit=4`);
+  const res = await fetch(`${baseUrl}/api/products?featured=true&limit=8`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch featured products");

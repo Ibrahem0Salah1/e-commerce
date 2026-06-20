@@ -14,21 +14,30 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useProductFilters } from "@/hooks/use-product-filters";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-
+import { Controller, useForm, type SubmitHandler } from "react-hook-form";
+import { filtersSchema, FiltersFormFields } from "@/lib/types";
 const sortOptions = [
   { value: "name", label: "Name" },
   { value: "price_asc", label: "Price: low to high" },
   { value: "price_desc", label: "Price: high to low" },
 ] as const;
+
+const defaultValues: FiltersFormFields = {
+  category: "",
+  brand: "",
+  featured: false,
+  sort: "name",
+  q: ""
+};
 
 export function FilterMenu({
   categories,
@@ -38,106 +47,130 @@ export function FilterMenu({
   brands: { id: string; name: string; slug: string; logo: string | null }[];
 }) {
   const [filters, setFilters] = useProductFilters();
-  const [draft, setDraft] = useState({ ...filters });
   const [open, setOpen] = useState(false);
 
-  const updateDraft = (next: Partial<typeof draft>) => {
-    setDraft((prev) => ({ ...prev, ...next }));
-  };
+  const { handleSubmit, control, reset } = useForm<FiltersFormFields>({
+    // sync form to current URL state every time the sheet opens
+    defaultValues: {
+      category: filters.category,
+      brand: filters.brand,
+      featured: filters.featured,
+      sort: filters.sort,
+      q: filters.q
+    },
+  });
 
-  const apply = () => {
-    setFilters({ ...draft, page: 1 });
+  const onSubmit: SubmitHandler<FiltersFormFields> = (data) => {
+    setFilters({ ...data, page: 1 });
     setOpen(false);
   };
 
-  const clear = () => {
-    const cleared = {
-      category: "",
-      brand: "",
-      featured: false,
-      sort: "name" as const,
-    };
-    setDraft((prev) => ({ ...prev, ...cleared }));
-  };
+  function handleClear() {
+    reset(defaultValues);
+    setFilters({ ...defaultValues, page: 1 });
+    setOpen(false);
+  }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        // re-sync form to URL state every time the sheet opens,
+        // so it never shows stale values from a previous open
+        if (next) {
+          reset({
+            category: filters.category,
+            brand: filters.brand,
+            // q: filters.q,
+            featured: filters.featured,
+            sort: filters.sort,
+          });
+        }
+        setOpen(next);
+      }}
+    >
       <SheetTrigger asChild>
         <Button variant="outline" size="sm">
           <SlidersHorizontal />
           Filters
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className=" px-6 max-w-sm  ">
+      <SheetContent side="right" className="max-w-sm px-6">
         <SheetHeader>
           <SheetTitle>Filters</SheetTitle>
         </SheetHeader>
 
-        <div className="mt-2 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-2 space-y-4">
           <div className="space-y-2">
             <Label>Category</Label>
-            <Select
-              value={draft.category || "all"}
-              onValueChange={(value) =>
-                updateDraft({ category: value === "all" ? "" : value })
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="All categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.slug}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="category"
+              render={({ field }) => (
+                <Select
+                  value={field.value || "all"}
+                  onValueChange={(value) => field.onChange(value === "all" ? "" : value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.slug}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <Separator />
 
           <div className="space-y-3">
             <Label>Brand</Label>
-            <RadioGroup
-              value={draft.brand || "all"}
-              onValueChange={(value) =>
-                updateDraft({ brand: value === "all" ? "" : value })
-              }
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem id="mobile-brand-all" value="all" />
-                <Label htmlFor="mobile-brand-all" className="font-normal">
-                  All brands
-                </Label>
-              </div>
-              {brands.map((brand) => (
-                <div key={brand.id} className="flex items-center gap-2">
-                  <RadioGroupItem
-                    id={`mobile-brand-${brand.id}`}
-                    value={brand.slug}
-                  />
-                  <Label
-                    htmlFor={`mobile-brand-${brand.id}`}
-                    className="font-normal"
-                  >
-                    {brand.name}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <Controller
+              control={control}
+              name="brand"
+              render={({ field }) => (
+                <RadioGroup
+                  value={field.value || "all"}
+                  onValueChange={(value) => field.onChange(value === "all" ? "" : value)}
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem id="mobile-brand-all" value="all" />
+                    <Label htmlFor="mobile-brand-all" className="font-normal">
+                      All brands
+                    </Label>
+                  </div>
+                  {brands.map((brand) => (
+                    <div key={brand.id} className="flex items-center gap-2">
+                      <RadioGroupItem id={`mobile-brand-${brand.id}`} value={brand.slug} />
+                      <Label htmlFor={`mobile-brand-${brand.id}`} className="font-normal">
+                        {brand.name}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
+            />
           </div>
 
           <Separator />
 
           <div className="flex items-center gap-2">
-            <Checkbox
-              id="mobile-featured"
-              checked={draft.featured}
-              onCheckedChange={(checked) =>
-                updateDraft({ featured: checked === true })
-              }
+            <Controller
+              control={control}
+              name="featured"
+              render={({ field }) => (
+                <Checkbox
+                  id="mobile-featured"
+                  checked={field.value}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+              )}
             />
             <Label htmlFor="mobile-featured" className="font-normal">
               Featured products only
@@ -148,39 +181,35 @@ export function FilterMenu({
 
           <div className="space-y-2">
             <Label>Sort by</Label>
-            <Select
-              value={draft.sort}
-              onValueChange={(value) =>
-                updateDraft({
-                  sort: value as (typeof sortOptions)[number]["value"],
-                })
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="sort"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={(value) => field.onChange(value as FiltersFormFields["sort"])}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="flex flex-row gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={clear} className="flex-1">
-              <RotateCcw />
-              Reset
+            <Button type="button" variant="outline" size="sm" onClick={handleClear} className="flex-1">
+              <RotateCcw /> Reset
             </Button>
-            <SheetClose asChild>
-              <Button size="sm" onClick={apply} className="flex-1">
-                Apply filters
-              </Button>
-            </SheetClose>
+            <Button type="submit" size="sm" className="flex-1">
+              Apply filters
+            </Button>
           </div>
-        </div>
+        </form>
       </SheetContent>
     </Sheet>
   );

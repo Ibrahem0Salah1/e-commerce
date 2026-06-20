@@ -1,5 +1,6 @@
 "use client";
-
+import React from "react";
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,48 +10,74 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useProductFilters } from "@/hooks/use-product-filters";
-import Link from "next/link";
 
-export function ShopBreadcrumbs() {
+type Crumb = {
+  label: string;
+  href: string;
+};
+
+export function ShopBreadcrumbs({
+  categories,
+  brands,
+}: {
+  categories: { slug: string; name: string }[];
+  brands: { slug: string; name: string }[];
+}) {
   const [filters] = useProductFilters();
-  const items: { label: string; href?: string; isPage?: boolean }[] = [];
+  const crumbs: Crumb[] = [{ label: "Products", href: "/shop" }];
 
-  items.push({ label: "Products", href: "/shop" });
+  const params = new URLSearchParams();
 
   if (filters.category) {
-    items.push({ label: filters.category, href: "/shop" });
+    const category = categories.find((c) => c.slug === filters.category);
+    params.set("category", filters.category);
+    crumbs.push({
+      label: category?.name ?? filters.category,
+      href: `/shop?${params.toString()}`,
+    });
   }
 
   if (filters.brand) {
-    items.push({ label: filters.brand, isPage: true });
+    const brand = brands.find((b) => b.slug === filters.brand);
+    params.set("brand", filters.brand);
+    crumbs.push({
+      label: brand?.name ?? filters.brand,
+      href: `/shop?${params.toString()}`,
+    });
   }
 
   if (filters.q) {
-    items.push({ label: `"${filters.q}"`, isPage: true });
-  }
-
-  if (items.length === 1) {
-    items[0] = { ...items[0], isPage: true };
+    const qParams = new URLSearchParams(params);
+    qParams.set("q", filters.q);
+    crumbs.push({
+      label: `"${filters.q}"`,
+      href: `/shop?${qParams.toString()}`,
+    });
   }
 
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        {items.map((item, i) => (
-          <BreadcrumbItem key={i}>
-            {item.isPage || i === items.length - 1 ? (
-              <BreadcrumbPage>{item.label}</BreadcrumbPage>
-            ) : (
-              <BreadcrumbLink asChild>
-                <Link href={item.href ?? "/shop"}>{item.label}</Link>
-              </BreadcrumbLink>
-            )}
-          </BreadcrumbItem>
-        ))}
-        {items.length > 1 &&
-          Array.from({ length: items.length - 1 }).map((_, i) => (
-            <BreadcrumbSeparator key={`sep-${i}`} />
-          ))}
+        {crumbs.map((crumb, i) => {
+          const isLast = i === crumbs.length - 1;
+          return (
+            // Fragment, NOT nested inside BreadcrumbItem —
+            // BreadcrumbItem and BreadcrumbSeparator are both
+            // <li> elements and must be siblings under <ol>
+            <React.Fragment key={crumb.href}>
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link href={crumb.href}>{crumb.label}</Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+              {!isLast && <BreadcrumbSeparator />}
+            </React.Fragment>
+          );
+        })}
       </BreadcrumbList>
     </Breadcrumb>
   );

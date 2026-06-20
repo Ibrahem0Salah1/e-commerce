@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signInSchema, SignInFormFields } from "@/lib/types";
 import { signInAction } from "@/lib/auth.actions";
 import { signIn } from "@/lib/auth-client";
-import { AuthLoading } from "@/components/auth/AuthLoading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

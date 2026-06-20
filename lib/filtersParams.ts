@@ -4,6 +4,7 @@ import {
   parseAsInteger,
   parseAsString,
   parseAsStringEnum,
+  ParserWithOptionalDefault,
 } from "nuqs/server";
 
 export const filtersParsers = {
@@ -33,4 +34,4 @@ export const filtersParsers = {
     .withDefault(12)
     .withOptions({ clearOnDefault: true, scroll: true }),
 };
-export type ProductFilters = inferParserType<typeof filtersParsers>;
+export type ProductFilters = ParserWithOptionalDefault<typeof filtersParsers>;

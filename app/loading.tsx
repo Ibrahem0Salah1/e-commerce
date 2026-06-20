@@ -1,5 +1,5 @@
 import Image from "next/image";
-export default function AuthLoading() {
+export default function Loading() {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-6">
@@ -11,14 +11,14 @@ export default function AuthLoading() {
                         <Image
                             src="/zz.svg"
                             alt="dental logoMark"
-                            className="animate-spin-slow rounded-full"
+                            className="animate-pulse rounded-full"
                             width={80}
                             height={80}
                         />
                     </div>
                 </div>
 
-                <p className="text-sm text-muted-foreground animate-pulse mt-2">
+                <p className="text-sm text-muted-foreground animate-float mt-2">
                     Loading...
                 </p>
             </div>

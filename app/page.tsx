@@ -8,10 +8,12 @@ export default async function Home() {
 
   return (
     <>
-      <Header />
-      <Hero />
-      <FeaturedProducts />
-      <TestimonialsSection />
+      <main className="">
+        <Header />
+        <Hero />
+        <FeaturedProducts />
+        <TestimonialsSection />
+      </main>
     </>
   );
 }
