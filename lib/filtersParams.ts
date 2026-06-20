@@ -34,4 +34,4 @@ export const filtersParsers = {
     .withDefault(12)
     .withOptions({ clearOnDefault: true, scroll: true }),
 };
-export type ProductFilters = ParserWithOptionalDefault<typeof filtersParsers>;
+export type ProductFilters = inferParserType<typeof filtersParsers>;
