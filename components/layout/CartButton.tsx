@@ -141,7 +141,12 @@ export function CartButton() {
                   </span>
                 </div>
                 <SheetClose asChild>
-                  <Button asChild size="lg" className="w-full">
+                  <Button asChild variant="outline" size="sm" className="w-full cursor-pointer">
+                    <Link href="/cart">Go to Cart</Link>
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button asChild size="lg" className="w-full cursor-pointer">
                     <Link href="/checkout">Checkout</Link>
                   </Button>
                 </SheetClose>
