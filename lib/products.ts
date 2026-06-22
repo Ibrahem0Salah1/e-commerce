@@ -1,26 +1,121 @@
 import prisma from "@/lib/prisma";
+import { cache } from "react";
+import { Prisma } from "@prisma/client";
 import type { ProductDetail, ProductListItem, ProductsResult } from "./types";
-import { ProductFilters } from "./filtersParams";
+import type { ProductFilters } from "./filtersParams";
+import { unstable_cache } from "next/cache";
 
-export async function getProducts(
-  filters: ProductFilters,
-): Promise<ProductsResult> {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
-  });
+// ─── SERVER ONLY — called from Server Components and API routes ───
+// Never import this into a "use client" file
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/products?${params}`);
+async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    ...(filters.category && { category: { slug: filters.category } }),
+    ...(filters.brand && { brand: { slug: filters.brand } }),
+    ...(filters.featured && { featured: true }),
+    ...(filters.q && { name: { contains: filters.q, mode: "insensitive" } }),
+  };
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch products");
-  }
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    filters.sort === "price_asc"
+      ? { basePrice: "asc" }
+      : filters.sort === "price_desc"
+        ? { basePrice: "desc" }
+        : filters.sort === "name"
+          ? { name: "asc" }
+          : { createdAt: "desc" };
 
-  return res.json();
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy,
+      skip: (filters.page - 1) * filters.limit,
+      take: filters.limit,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        basePrice: true,
+        images: true,
+        featured: true,
+        category: { select: { id: true, name: true, slug: true } },
+        brand: { select: { id: true, name: true, slug: true, logo: true } },
+        variants: {
+          where: { isActive: true },
+          orderBy: { price: "asc" },
+          select: { id: true, name: true, price: true, stock: true },
+        },
+        reviews: { select: { rating: true } },
+        _count: { select: { reviews: true, variants: true } },
+      },
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  const data = products.map(
+    ({ reviews, _count, variants, basePrice, ...rest }) => {
+      const avgRating =
+        reviews.length > 0
+          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+          : null;
+
+      return {
+        ...rest,
+        basePrice: Number(basePrice),
+        variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
+        variantCount: _count.variants,
+        reviewCount: _count.reviews,
+        rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+      };
+    },
+  );
+
+  return {
+    products: data,
+    pagination: {
+      page: filters.page,
+      limit: filters.limit,
+      total,
+      totalPages: Math.ceil(total / filters.limit),
+    },
+  };
 }
+
+export const getProductsServer = unstable_cache(
+  async (filters: ProductFilters): Promise<ProductsResult> => {
+    return queryProducts(filters);
+  },
+  ["products"],
+  {
+    revalidate: 60, // rebuild cache entry every 60 seconds
+    tags: ["products"], // lets you invalidate on demand
+  },
+);
+//
+// in your admin product update action
+// import { revalidateTag } from "next/cache";
+
+// export async function updateProductAction(...) {
+//     await prisma.product.update(...);
+//     revalidateTag("products"); // next request rebuilds from DB, all others hit cache
+// }
+
+export const getFeaturedProducts = cache(
+  async (): Promise<ProductListItem[]> => {
+    const data = await queryProducts({
+      q: "",
+      category: "",
+      brand: "",
+      featured: true,
+      sort: "name",
+      page: 1,
+      limit: 8,
+    });
+    return data.products;
+  },
+);
 
 export async function getProductBySlug(
   slug: string,
@@ -79,11 +174,12 @@ export async function getProductBySlug(
 
   if (!product) return null;
 
-  const reviews = product.reviews;
   const avgRating =
-    reviews.length > 0
+    product.reviews.length > 0
       ? Math.round(
-          (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10,
+          (product.reviews.reduce((sum, r) => sum + r.rating, 0) /
+            product.reviews.length) *
+            10,
         ) / 10
       : null;
 
@@ -92,20 +188,31 @@ export async function getProductBySlug(
     basePrice: Number(product.basePrice),
     variants: product.variants.map((v) => ({ ...v, price: Number(v.price) })),
     specs: product.specGroups,
-    reviews,
+    reviews: product.reviews,
     reviewCount: product._count.reviews,
     rating: avgRating,
   };
 }
 
-export async function getFeaturedProducts(): Promise<ProductListItem[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/products?featured=true&limit=8`);
+// ─── CLIENT SAFE — calls the API route over HTTP ───
+// Safe to import in "use client" files
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch featured products");
-  }
+export async function getProductsClient(
+  filters: ProductFilters,
+): Promise<ProductsResult> {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      value !== "" &&
+      value !== false
+    ) {
+      params.set(key, String(value));
+    }
+  });
 
-  const data = await res.json();
-  return data.products;
+  const res = await fetch(`/api/products?${params}`);
+  if (!res.ok) throw new Error("Failed to fetch products");
+  return res.json();
 }

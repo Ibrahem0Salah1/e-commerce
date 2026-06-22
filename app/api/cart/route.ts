@@ -54,9 +54,9 @@ export async function POST(request: NextRequest) {
     variantId: string;
     quantity?: number;
   };
-
-  if (!variantId || quantity < 1) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  const variant = await prisma.variant.findUnique({ where: { id: variantId } });
+  if (!variant || !variant.isActive || quantity < 1) {
+    return NextResponse.json({ error: "Variant not found" }, { status: 404 });
   }
 
   await prisma.cartItem.upsert({

@@ -12,6 +12,22 @@ import {
 } from "@/components/ui/accordion";
 import { getProductBySlug } from "@/lib/products";
 import { AddToCartButton } from "./AddToCartButton";
+export async function generateMetadata({ params }: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) return {};
+
+  return {
+    title: `${product.name} | MDS Dental Store`,
+    description: product.description ?? `Buy ${product.name} from MDS`,
+    openGraph: {
+      title: product.name,
+      images: [{ url: product.images[0] }],
+    },
+  };
+}
 
 export default async function ProductPage({
   params,
@@ -66,11 +82,10 @@ export default async function ProductPage({
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
-                  className={`h-4 w-4 ${
-                    product.rating && i < Math.round(product.rating)
-                      ? "fill-primary text-primary"
-                      : "fill-muted text-muted"
-                  }`}
+                  className={`h-4 w-4 ${product.rating && i < Math.round(product.rating)
+                    ? "fill-primary text-primary"
+                    : "fill-muted text-muted"
+                    }`}
                 />
               ))}
             </div>
@@ -152,11 +167,10 @@ export default async function ProductPage({
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-3 w-3 ${
-                        product.rating && i < Math.round(product.rating)
-                          ? "fill-primary text-primary"
-                          : "fill-muted text-muted"
-                      }`}
+                      className={`h-3 w-3 ${product.rating && i < Math.round(product.rating)
+                        ? "fill-primary text-primary"
+                        : "fill-muted text-muted"
+                        }`}
                     />
                   ))}
                 </div>
@@ -181,11 +195,10 @@ export default async function ProductPage({
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
                             key={i}
-                            className={`h-3 w-3 ${
-                              i < review.rating
-                                ? "fill-primary text-primary"
-                                : "fill-muted text-muted"
-                            }`}
+                            className={`h-3 w-3 ${i < review.rating
+                              ? "fill-primary text-primary"
+                              : "fill-muted text-muted"
+                              }`}
                           />
                         ))}
                       </div>

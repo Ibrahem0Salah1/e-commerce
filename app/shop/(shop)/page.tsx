@@ -1,13 +1,26 @@
 import { getBrands, getCategories } from "@/lib/categories";
-import { ProductsList } from "@/components/shop/ProductsList";
+import { ProductsListServer } from "@/components/shop/ProductsListServer";
 import { ShopBreadcrumbs } from "@/components/shop/Breadcrumbs";
 import { SearchInput } from "@/components/shop/SearchInput";
 import { FilterMenu } from "@/components/shop/FilterMenu";
 import { Suspense } from "react";
 import { ProductsSkeleton } from "@/components/products/ProductsSkeleton";
+import { searchParamsCache } from "@/lib/filtersParams";
+import { getProductsServer } from "@/lib/products";
+import type { SearchParams } from "nuqs/server";
 
-export default async function ShopPage() {
-  const [categories, brands] = await Promise.all([getCategories(), getBrands()]);
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const [categories, brands, filters] = await Promise.all([
+    getCategories(),
+    getBrands(),
+    searchParamsCache.parse(searchParams),
+  ]);
+  const productsPromise = getProductsServer(filters);
+
 
   return (
     <div className="space-y-4">
@@ -19,7 +32,10 @@ export default async function ShopPage() {
         </div>
       </div>
       <Suspense fallback={<ProductsSkeleton />}>
-        <ProductsList />
+        <ProductsListServer
+          productsPromise={productsPromise}
+        // pass categories/brands for breadcrumbs etc
+        />
       </Suspense>
     </div>
   );

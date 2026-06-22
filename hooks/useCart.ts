@@ -26,9 +26,14 @@ export function useCart() {
   const isLoggedIn = !!session;
   const hasMerged = useRef(false);
   const guestCart = useGuestCart();
+
+  //invalidate
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["cart"] });
+  //merge Mutation
   const mergeMutation = useMutation({
     mutationFn: (items: CartItem[]) =>
-      Promise.all(
+      Promise.allSettled(
         items.map((item) =>
           apiCall("POST", {
             variantId: item.variantId,
@@ -40,23 +45,22 @@ export function useCart() {
       guestCart.clearCart(); // wipe localStorage only after DB confirms
       invalidate();
     },
+    onError: () => {
+      hasMerged.current = false;
+    },
   });
   useEffect(() => {
     if (isLoggedIn && !hasMerged.current && guestCart.items.length > 0) {
       hasMerged.current = true;
       mergeMutation.mutate(guestCart.items);
     }
-  }, [isLoggedIn, guestCart.items, mergeMutation]);
+  }, [isLoggedIn]);
   const query = useQuery({
     queryKey: ["cart"],
     queryFn: fetchCart,
     enabled: isLoggedIn,
     staleTime: 30_000,
   });
-
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["cart"] });
-
   const addMutation = useMutation({
     mutationFn: ({
       variantId,
