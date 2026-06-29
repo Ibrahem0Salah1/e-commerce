@@ -44,8 +44,8 @@ export function ProductCard({ product }: { product: ProductListItem }) {
                     src={product.images[0] ?? "/placeholder-product.png"}
                     alt={product.name}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover text-center transition-transform duration-300 group-hover:scale-105"
+
                 />
                 {product.brand && (
                     <Badge variant="secondary" className="absolute left-2 top-2 bg-card/90 text-foreground">
