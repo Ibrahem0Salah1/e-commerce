@@ -1,24 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { CartItem } from "@/lib/types";
 import { useGuestCart } from "@/lib/cart-store";
 import { authClient } from "@/lib/auth-client";
 import { useEffect, useRef } from "react";
-async function fetchCart(): Promise<CartItem[]> {
-  const res = await fetch("/api/cart");
-  if (!res.ok) throw new Error("Failed to fetch cart");
-  const data = await res.json();
-  return data.items;
-}
-
-function apiCall(method: string, body?: unknown) {
-  return fetch("/api/cart", {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-}
+import {
+  addToCartAction,
+  getCartAction,
+  removeFromCartAction,
+  updateCartQuantityAction,
+} from "@/lib/cart.actions";
 
 export function useCart() {
   const { data: session, isPending: sessionLoading } = authClient.useSession();
@@ -27,66 +20,104 @@ export function useCart() {
   const hasMerged = useRef(false);
   const guestCart = useGuestCart();
 
-  //invalidate
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["cart"] });
-  //merge Mutation
+
   const mergeMutation = useMutation({
     mutationFn: (items: CartItem[]) =>
       Promise.allSettled(
-        items.map((item) =>
-          apiCall("POST", {
-            variantId: item.variantId,
-            quantity: item.quantity,
-          }),
-        ),
+        items.map((item) => addToCartAction(item.variantId, item.quantity)),
       ),
     onSuccess: () => {
-      guestCart.clearCart(); // wipe localStorage only after DB confirms
+      guestCart.clearCart();
       invalidate();
+      toast.success("Cart synced", {
+        description: "Your guest cart items have been added.",
+      });
     },
     onError: () => {
       hasMerged.current = false;
+      toast.error("Sync failed", {
+        description: "Could not merge your guest cart.",
+      });
     },
   });
+
   useEffect(() => {
     if (isLoggedIn && !hasMerged.current && guestCart.items.length > 0) {
       hasMerged.current = true;
       mergeMutation.mutate(guestCart.items);
     }
   }, [isLoggedIn]);
+
   const query = useQuery({
     queryKey: ["cart"],
-    queryFn: fetchCart,
+    queryFn: getCartAction,
     enabled: isLoggedIn,
     staleTime: 30_000,
   });
+
   const addMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       variantId,
       quantity,
     }: {
       variantId: string;
       quantity: number;
-    }) => apiCall("POST", { variantId, quantity }),
-    onSuccess: invalidate,
+    }) => {
+      const result = await addToCartAction(variantId, quantity);
+      if (!result.success) throw new Error(result.toast.title);
+      return result;
+    },
+    onSuccess: (result) => {
+      invalidate();
+      toast.success(result.toast.title, {
+        description: result.toast.description,
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Could not add item");
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       variantId,
       quantity,
     }: {
       variantId: string;
       quantity: number;
-    }) => apiCall("PATCH", { variantId, quantity }),
-    onSuccess: invalidate,
+    }) => {
+      const result = await updateCartQuantityAction(variantId, quantity);
+      if (!result.success) throw new Error(result.toast.title);
+      return result;
+    },
+    onSuccess: (result) => {
+      invalidate();
+      toast.success(result.toast.title, {
+        description: result.toast.description,
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Could not update item");
+    },
   });
 
   const removeMutation = useMutation({
-    mutationFn: (variantId: string) =>
-      fetch(`/api/cart?variantId=${variantId}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    mutationFn: async (variantId: string) => {
+      const result = await removeFromCartAction(variantId);
+      if (!result.success) throw new Error(result.toast.title);
+      return result;
+    },
+    onSuccess: (result) => {
+      invalidate();
+      toast.success(result.toast.title, {
+        description: result.toast.description,
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Could not remove item");
+    },
   });
 
   const items = isLoggedIn ? (query.data ?? []) : guestCart.items;
@@ -96,6 +127,9 @@ export function useCart() {
       addMutation.mutate({ variantId: item.variantId, quantity });
     } else {
       guestCart.addItem(item, quantity);
+      toast.success("Added to cart", {
+        description: `${item.name} (${item.variantName}) has been added.`,
+      });
     }
   };
 
@@ -103,7 +137,13 @@ export function useCart() {
     if (isLoggedIn) {
       updateMutation.mutate({ variantId, quantity });
     } else {
-      guestCart.updateQuantity(variantId, quantity);
+      if (quantity <= 0) {
+        guestCart.removeItem(variantId);
+        toast.success("Item removed");
+      } else {
+        guestCart.updateQuantity(variantId, quantity);
+        toast.success("Quantity updated");
+      }
     }
   };
 
@@ -112,6 +152,9 @@ export function useCart() {
       removeMutation.mutate(variantId);
     } else {
       guestCart.removeItem(variantId);
+      toast.success("Item removed", {
+        description: "Item has been removed from your cart.",
+      });
     }
   };
 

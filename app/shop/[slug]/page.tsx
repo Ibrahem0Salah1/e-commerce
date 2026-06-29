@@ -12,13 +12,14 @@ import {
 } from "@/components/ui/accordion";
 import { getProductBySlug } from "@/lib/products";
 import { AddToCartButton } from "./AddToCartButton";
+
 export async function generateMetadata({ params }: {
   params: Promise<{ slug: string }>;
 }) {
+
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) return {};
-
   return {
     title: `${product.name} | MDS Dental Store`,
     description: product.description ?? `Buy ${product.name} from MDS`,
