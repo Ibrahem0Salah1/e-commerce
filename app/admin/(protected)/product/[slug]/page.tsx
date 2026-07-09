@@ -24,7 +24,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
     prisma.brand.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const inStock = product.variants.some((v) => v.stock > 0);
+  const inStock = product.variants.some((v: { stock: number }) => v.stock > 0);
 
   return (
     <section className="space-y-6">
