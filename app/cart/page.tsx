@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CartCard } from "@/components/cart/CartCard";
 import { useCart } from "@/hooks/useCart";
+import { formatNumber } from "@/lib/utils/format";
 import { useRouter } from "next/navigation";
 
 export default function CartPage() {
@@ -83,7 +84,7 @@ export default function CartPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
-                  <span className="tabular-nums">{totalPrice.toLocaleString()} EGP</span>
+                  <span className="tabular-nums">{formatNumber(totalPrice)} EGP</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Shipping</span>
@@ -96,7 +97,7 @@ export default function CartPage() {
                   Total
                 </span>
                 <span className="text-lg font-bold tabular-nums">
-                  {totalPrice.toLocaleString()}
+                  {formatNumber(totalPrice)}
                   <span className="ml-1 text-sm font-normal text-muted-foreground">
                     EGP
                   </span>

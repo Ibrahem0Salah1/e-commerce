@@ -3,8 +3,8 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signInSchema, SignInFormFields } from "@/lib/types";
-import { signInAction } from "@/lib/auth.actions";
-import { signIn } from "@/lib/auth-client";
+import { signInAction } from "@/lib/auth/actions";
+import { signIn } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuthUI } from "@/components/auth/AuthLayout";
 import Link from "next/link";
 
-export default function SignIn() {
+export default function SignIn({ callbackUrl = "/" }: { callbackUrl?: string }) {
     const { setIsOAuthPending } = useAuthUI();
     const {
         register,
@@ -25,7 +25,7 @@ export default function SignIn() {
     });
 
     const onSubmit: SubmitHandler<SignInFormFields> = async (data) => {
-        const result = await signInAction(data.email, data.password);
+        const result = await signInAction(data.email, data.password, callbackUrl);
         if (result?.error) {
             setError("root", { message: result.error });
         }
@@ -37,7 +37,7 @@ export default function SignIn() {
         try {
             await signIn.social({
                 provider,
-                callbackURL: "/",
+                callbackURL: callbackUrl,
             });
         } catch {
             setIsOAuthPending(false);

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { SessionUser } from "@/lib/types";
-import { signOutAction } from "@/lib/auth.actions";
+import { signOutAction } from "@/lib/auth/actions";
 import type { getCategories } from "@/lib/categories";
 import type { getBrands } from "@/lib/categories";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getProductsClient } from "@/lib/products"; // ← client-safe function
+import { getProductsClient } from "@/lib/products/client"; // ← client-safe function
 import type { ProductsResult } from "@/lib/types";
 import { useProductFilters } from "./use-product-filters";
 
@@ -10,9 +10,10 @@ export function useProducts(initialData?: ProductsResult) {
 
   return useQuery({
     queryKey: ["products", filters],
-    queryFn: () => getProductsClient(filters), // ← HTTP fetch, safe in browser
+    queryFn: () => getProductsClient(filters),
     placeholderData: keepPreviousData,
     initialData,
     staleTime: 30_000,
+    // enabled: typeof window !== "undefined",
   });
 }

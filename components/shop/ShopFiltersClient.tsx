@@ -4,7 +4,6 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -55,7 +54,7 @@ export function ShopFiltersClient({
       featured: false,
       sort: "name",
       page: 1,
-      limit: 12,
+      limit: 20,
     });
   };
 
@@ -103,29 +102,26 @@ export function ShopFiltersClient({
 
       <Separator className="my-4" />
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <Label>Brand</Label>
-        <RadioGroup
+        <Select
           value={filters.brand || "all"}
           onValueChange={(value) =>
             updateFilters({ brand: value === "all" ? "" : value })
           }
         >
-          <div className="flex items-center gap-2">
-            <RadioGroupItem id="brand-all" value="all" />
-            <Label htmlFor="brand-all" className="font-normal">
-              All brands
-            </Label>
-          </div>
-          {brands.map((brand) => (
-            <div key={brand.id} className="flex items-center gap-2">
-              <RadioGroupItem id={`brand-${brand.id}`} value={brand.slug} />
-              <Label htmlFor={`brand-${brand.id}`} className="font-normal">
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="All brands" />
+          </SelectTrigger>
+          <SelectContent className="max-h-72 overflow-y-auto">
+            <SelectItem value="all">All brands</SelectItem>
+            {brands.map((brand) => (
+              <SelectItem key={brand.id} value={brand.slug}>
                 {brand.name}
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Separator className="my-4" />

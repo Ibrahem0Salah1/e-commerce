@@ -20,7 +20,7 @@ const mockProduct: ProductListItem = {
     id: "prod-1",
     name: "Nitrile Examination Gloves",
     slug: "nitrile-examination-gloves",
-    description: "Powder-free nitrile gloves",
+    description: ["Powder-free nitrile gloves"],
     basePrice: 220,
     images: ["/gloves.jpg"],
     featured: false,

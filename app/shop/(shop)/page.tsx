@@ -5,7 +5,7 @@ import { SearchInput } from "@/components/shop/SearchInput";
 import { FilterMenu } from "@/components/shop/FilterMenu";
 import { Suspense } from "react";
 import { ProductsSkeleton } from "@/components/products/ProductsSkeleton";
-import { searchParamsCache } from "@/lib/filtersParams";
+import { searchParamsCache } from "@/lib/products/filters";
 import { getProductsServer } from "@/lib/products";
 import type { SearchParams } from "nuqs/server";
 
@@ -23,7 +23,7 @@ export default async function ShopPage({
 
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
       <ShopBreadcrumbs categories={categories} brands={brands} />
       <div className="flex items-center gap-2">
         <SearchInput />

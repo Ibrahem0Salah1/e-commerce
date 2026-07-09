@@ -3,8 +3,8 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signUpSchema, SignUpFormFields } from "@/lib/types";
-import { signUpAction } from "@/lib/auth.actions";
-import { signIn } from "@/lib/auth-client";
+import { signUpAction } from "@/lib/auth/actions";
+import { signIn } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

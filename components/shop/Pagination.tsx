@@ -9,7 +9,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { filtersParsers } from "@/lib/filtersParams";
+import { filtersParsers } from "@/lib/products/filters";
 import { useQueryState } from "nuqs";
 
 export function Pagination({

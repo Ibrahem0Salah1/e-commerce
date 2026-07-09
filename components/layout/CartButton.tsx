@@ -15,6 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCart } from "@/hooks/useCart";
+import { formatNumber } from "@/lib/utils/format";
 
 export function CartButton() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } =
@@ -103,7 +104,7 @@ export function CartButton() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold tabular-nums">
-                        {(item.price * item.quantity).toLocaleString()}
+                        {formatNumber(item.price * item.quantity)}
                         <span className="ml-0.5 text-xs font-normal text-muted-foreground">
                           EGP
                         </span>
@@ -134,7 +135,7 @@ export function CartButton() {
                     Total
                   </span>
                   <span className="text-lg font-bold tabular-nums">
-                    {totalPrice.toLocaleString()}
+                    {formatNumber(totalPrice)}
                     <span className="ml-1 text-sm font-normal text-muted-foreground">
                       EGP
                     </span>

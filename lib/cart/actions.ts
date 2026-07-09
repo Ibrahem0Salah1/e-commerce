@@ -1,8 +1,8 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { headers } from "next/headers";
-import prisma from "@/lib/prisma";
+import prisma from "@/lib/config/prisma";
 import type { CartItem } from "@/lib/types";
 
 type ActionResult =
@@ -67,6 +67,7 @@ export async function addToCartAction(
   const variant = await prisma.variant.findUnique({
     where: { id: variantId },
   });
+
   if (!variant || !variant.isActive) {
     return {
       success: false,
@@ -77,13 +78,33 @@ export async function addToCartAction(
       },
     };
   }
-  if (variant.stock < quantity) {
+
+  const existingCartItem = await prisma.cartItem.findUnique({
+    where: { userId_variantId: { userId: session.user.id, variantId } },
+  });
+
+  const currentCartQty = existingCartItem?.quantity ?? 0;
+  const projectedTotalQty = currentCartQty + quantity;
+
+  if (variant.stock <= 0) {
     return {
       success: false,
       toast: {
         type: "error",
         title: "Out of stock",
-        description: `Only ${variant.stock} units available.`,
+        description: "This item is currently unavailable.",
+      },
+    };
+  }
+
+  if (projectedTotalQty > variant.stock) {
+    const remainingStock = variant.stock - currentCartQty;
+    return {
+      success: false,
+      toast: {
+        type: "error",
+        title: "Stock limit reached",
+        description: `You can only add ${remainingStock} more of this item. (Total available: ${variant.stock})`,
       },
     };
   }
@@ -121,6 +142,33 @@ export async function updateCartQuantityAction(
       where: { userId: session.user.id, variantId },
     });
     return { success: true, toast: { type: "success", title: "Item removed" } };
+  }
+
+  const variant = await prisma.variant.findUnique({
+    where: { id: variantId },
+    select: { stock: true, isActive: true },
+  });
+
+  if (!variant || !variant.isActive) {
+    return {
+      success: false,
+      toast: {
+        type: "error",
+        title: "Product unavailable",
+        description: "This variant is no longer available.",
+      },
+    };
+  }
+
+  if (quantity > variant.stock) {
+    return {
+      success: false,
+      toast: {
+        type: "error",
+        title: "Stock limit reached",
+        description: `Only ${variant.stock} units of this item are available.`,
+      },
+    };
   }
 
   await prisma.cartItem.updateMany({

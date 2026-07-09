@@ -3,15 +3,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CartItem } from "@/lib/types";
-import { useGuestCart } from "@/lib/cart-store";
-import { authClient } from "@/lib/auth-client";
+import { useGuestCart } from "@/lib/cart/store";
+import { authClient } from "@/lib/auth/client";
 import { useEffect, useRef } from "react";
 import {
   addToCartAction,
   getCartAction,
   removeFromCartAction,
   updateCartQuantityAction,
-} from "@/lib/cart.actions";
+} from "@/lib/cart/actions";
 
 export function useCart() {
   const { data: session, isPending: sessionLoading } = authClient.useSession();

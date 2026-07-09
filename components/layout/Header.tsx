@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import Logo from "./Logo";
 import { DesktopNav } from "../shared/DeskptopNav";
 // import { CartButton } from "./CartButton";
@@ -21,6 +21,7 @@ export async function Header() {
             name: session.user.name,
             email: session.user.email,
             image: session.user.image,
+            role: session.user.role,
         }
         : null;
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 export const signUpSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   email: z.string().email("Enter a valid email"),
@@ -14,23 +15,30 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const otpSchema = z.object({
+  otp: z
+    .string()
+    .length(6, "Code must be 6 digits")
+    .regex(/^\d+$/, "Code must contain only numbers"),
+});
+
+export type OtpForm = z.infer<typeof otpSchema>;
 export type SignUpFormFields = z.infer<typeof signUpSchema>;
 export type SignInFormFields = z.infer<typeof signInSchema>;
 
-//user's session type
 export type SessionUser = {
   id: string;
   name: string;
   email: string;
   image?: string | null;
+  role?: string | null;
 };
 
-//product
 export type ProductListItem = {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
+  description: string[];
   basePrice: number;
   images: string[];
   featured: boolean;
@@ -42,7 +50,6 @@ export type ProductListItem = {
   rating: number | null;
 };
 
-//cart
 export type CartItem = {
   variantId: string;
   productId: string;
@@ -54,12 +61,11 @@ export type CartItem = {
   quantity: number;
 };
 
-//product detail page
 export type ProductDetail = {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
+  description: string[];
   basePrice: number;
   images: string[];
   featured: boolean;
@@ -74,7 +80,10 @@ export type ProductDetail = {
     image: string | null;
     isActive: boolean;
   }[];
-  specs: { name: string; specs: { key: string; value: string }[] }[];
+  specs: {
+    name: string;
+    specs: { id: string; key: string; value: string }[];
+  }[];
   reviews: {
     id: string;
     rating: number;
@@ -87,7 +96,21 @@ export type ProductDetail = {
   rating: number | null;
 };
 
-//product filters (used by getProducts client fn)
+export type VariantDetail = {
+  id: string;
+  name: string;
+  sku: string | null;
+  price: number;
+  stock: number;
+  isLimitedQuantity: boolean;
+  image: string | null;
+  isActive: boolean;
+  archived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  product: { id: string; name: string; slug: string };
+  productId: string;
+};
 
 export type ProductsResult = {
   products: ProductListItem[];
@@ -99,7 +122,6 @@ export type ProductsResult = {
   };
 };
 
-//review/testimonial
 export type Testimonial = {
   id: string;
   rating: number;
@@ -120,3 +142,25 @@ export const filtersSchema = z.object({
 });
 
 export type FiltersFormFields = z.infer<typeof filtersSchema>;
+
+export const checkoutSchema = z.object({
+  idempotencyKey: z.string().min(1),
+  items: z
+    .array(
+      z.object({
+        variantId: z.string().cuid(),
+        quantity: z.number().int().min(1).max(100),
+      }),
+    )
+    .min(1, "Cart cannot be empty"),
+  couponCode: z.string().optional(),
+  shippingName: z.string().min(2),
+  shippingPhone: z.string().min(8),
+  shippingAddress: z.string().min(5),
+  shippingCity: z.string().min(2),
+  shippingNotes: z.string().optional(),
+  guestEmail: z.string().email().optional(),
+  guestName: z.string().optional(),
+});
+
+export type CheckoutFormFields = z.infer<typeof checkoutSchema>;

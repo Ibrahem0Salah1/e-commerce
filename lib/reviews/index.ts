@@ -1,5 +1,5 @@
-import { Testimonial } from "@/lib/types";
-import prisma from "@/lib/prisma";
+import type { Testimonial } from "@/lib/types";
+import prisma from "@/lib/config/prisma";
 
 export async function getTestimonials(limit = 6): Promise<Testimonial[]> {
   const reviews = await prisma.review.findMany({

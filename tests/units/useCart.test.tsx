@@ -8,7 +8,7 @@ import { server } from "@/tests/mocks/server";
 import type { ReactNode } from "react";
 
 const mockUseSession = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/auth-client", () => ({
+vi.mock("@/lib/auth/client", () => ({
   authClient: {
     useSession: mockUseSession,
   },
@@ -20,7 +20,7 @@ const guestUpdateQuantity = vi.hoisted(() => vi.fn());
 const guestClearCart = vi.hoisted(() => vi.fn());
 const guestItems = vi.hoisted(() => ({ current: [] as CartItem[] }));
 
-vi.mock("@/lib/cart-store", () => ({
+vi.mock("@/lib/cart/store", () => ({
   useGuestCart: () => ({
     items: guestItems.current,
     addItem: guestAddItem,

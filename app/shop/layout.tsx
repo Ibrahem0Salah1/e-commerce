@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
     title: "Shop - MDS",
@@ -15,6 +16,7 @@ export default function ShopLayout({
         <>
             <Header />
             {children}
+            <Footer />
         </>
     );
 }

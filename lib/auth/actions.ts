@@ -1,24 +1,36 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { headers } from "next/headers";
 import { signInSchema, signUpSchema } from "@/lib/types";
 import { redirect } from "next/navigation";
 import { APIError } from "better-auth/api";
 
-export async function signInAction(email: string, password: string) {
-  // validate on server too — never trust the client alone
+function safeRedirectPath(path?: string) {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return "/";
+  }
+  return path;
+}
+
+export async function signInAction(
+  email: string,
+  password: string,
+  callbackURL = "/",
+) {
   const parsed = signInSchema.safeParse({ email, password });
   if (!parsed.success) {
     return { error: parsed.error.message };
   }
+
+  const redirectTo = safeRedirectPath(callbackURL);
 
   try {
     await auth.api.signInEmail({
       body: {
         email: parsed.data.email,
         password: parsed.data.password,
-        callbackURL: "/",
+        callbackURL: redirectTo,
       },
       headers: await headers(),
     });
@@ -37,7 +49,7 @@ export async function signInAction(email: string, password: string) {
     return { error: "Something went wrong. Please try again." };
   }
 
-  redirect("/");
+  redirect(redirectTo);
 }
 
 export async function signUpAction(

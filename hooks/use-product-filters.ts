@@ -1,6 +1,6 @@
 "use client";
 import { useQueryStates } from "nuqs";
-import { filtersParsers } from "../lib/filtersParams";
+import { filtersParsers } from "../lib/products/filters";
 export function useProductFilters() {
   return useQueryStates(filtersParsers, {});
 }

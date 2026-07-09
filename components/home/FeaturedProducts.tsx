@@ -11,7 +11,7 @@ export async function FeaturedProducts() {
   const sliderCards: CardData[] = products.map((p, i) => ({
     id: i + 1,
     title: p.name,
-    description: p.description ?? "",
+    description: p.description.join(" "),
     category: p.category.name,
     image: p.images[0] ?? "",
     slug: p.slug,

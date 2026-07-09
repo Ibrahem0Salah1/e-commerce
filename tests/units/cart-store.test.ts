@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useGuestCart } from "@/lib/cart-store";
+import { useGuestCart } from "@/lib/cart/store";
 
 // helper — reset store state between tests
 const resetStore = () => useGuestCart.setState({ items: [] });
