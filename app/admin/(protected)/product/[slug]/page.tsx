@@ -8,6 +8,7 @@ import { deleteProductAction, getAdminProductBySlug } from "@/lib/products/admin
 import { EditProductDialog } from "@/components/admin/EditProductDialog";
 import { formatNumber } from "@/lib/utils/format";
 import prisma from "@/lib/config/prisma";
+import type { AdminProductDetail } from "@/lib/types";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -15,7 +16,7 @@ type Props = {
 
 export default async function AdminProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = await getAdminProductBySlug(slug);
+  const product: AdminProductDetail | null = await getAdminProductBySlug(slug);
 
   if (!product) notFound();
 
@@ -23,8 +24,6 @@ export default async function AdminProductDetailPage({ params }: Props) {
     prisma.category.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
     prisma.brand.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
   ]);
-
-  //const inStock = product.variants.some((v) => v.stock > 0);
 
   return (
     <section className="space-y-6">
@@ -97,18 +96,6 @@ export default async function AdminProductDetailPage({ params }: Props) {
                 <dd className="font-medium">
                   {formatNumber(product.basePrice)} EGP
                 </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Status</dt>
-                {/* <dd>
-                  {inStock ? (
-                    <Badge variant="default" className="bg-emerald-600">
-                      In stock
-                    </Badge>
-                  ) : (
-                    <Badge variant="destructive">Out of stock</Badge>
-                  )}
-                </dd> */}
               </div>
               <div>
                 <dt className="text-muted-foreground">Featured</dt>

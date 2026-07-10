@@ -87,7 +87,9 @@ export async function updateVariantAction(variantId: string, raw: unknown) {
   revalidateTag("products", "hours");
 }
 
-export async function getAdminProductBySlug(slug: string) {
+import type { AdminProductDetail } from "@/lib/types";
+
+export async function getAdminProductBySlug(slug: string): Promise<AdminProductDetail | null> {
   const product = await prisma.product.findUnique({
     where: { slug },
     select: {

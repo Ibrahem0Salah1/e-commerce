@@ -96,6 +96,38 @@ export type ProductDetail = {
   rating: number | null;
 };
 
+export type AdminProductDetail = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string[];
+  madeIn: string | null;
+  basePrice: number;
+  images: string[];
+  featured: boolean;
+  bestSeller: boolean;
+  isActive: boolean;
+  archived: boolean;
+  category: { id: string; name: string; slug: string };
+  brand: { id: string; name: string; slug: string; logo: string | null } | null;
+  variants: {
+    id: string;
+    name: string;
+    sku: string | null;
+    price: number;
+    stock: number;
+    image: string | null;
+    isActive: boolean;
+  }[];
+  specGroups: {
+    id: string;
+    name: string;
+    position: number;
+    specs: { id: string; key: string; value: string; position: number }[];
+  }[];
+  _count: { reviews: number };
+};
+
 export type VariantDetail = {
   id: string;
   name: string;
