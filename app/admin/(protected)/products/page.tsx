@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import { getAdminAllProducts } from "@/lib/admin/products";
+import { getAllProducts } from "@/lib/products/index";
 import { ProductsPageClient } from "./ProductsPageClient";
 
 export default async function AdminProductsPage() {
-  const products = await getAdminAllProducts();
+  const products = await getAllProducts();
 
   return (
     <section className="space-y-6">
