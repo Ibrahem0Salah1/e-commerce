@@ -24,7 +24,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
     prisma.brand.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const inStock = product.variants.some((v: { stock: number }) => v.stock > 0);
+  //const inStock = product.variants.some((v) => v.stock > 0);
 
   return (
     <section className="space-y-6">
@@ -100,7 +100,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
               </div>
               <div>
                 <dt className="text-muted-foreground">Status</dt>
-                <dd>
+                {/* <dd>
                   {inStock ? (
                     <Badge variant="default" className="bg-emerald-600">
                       In stock
@@ -108,7 +108,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
                   ) : (
                     <Badge variant="destructive">Out of stock</Badge>
                   )}
-                </dd>
+                </dd> */}
               </div>
               <div>
                 <dt className="text-muted-foreground">Featured</dt>
