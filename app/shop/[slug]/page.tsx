@@ -14,7 +14,7 @@ import { formatNumber } from "@/lib/utils/format";
 import { AddToCartButton } from "./AddToCartButton";
 import { ImageGallery } from "./ImageGallery";
 import { TruncatedDescription } from "./TruncatedDescription";
-
+//hello
 export async function generateMetadata({ params }: {
   params: Promise<{ slug: string }>;
 }) {
