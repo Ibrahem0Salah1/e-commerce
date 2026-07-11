@@ -24,14 +24,14 @@ export function ProductsList({ initialData }: { initialData?: ProductsResult }) 
   }
 
   return (
-    <div className="relative space-y-4">
+    <div className="relative space-y-6">
       <div className="flex items-center justify-between gap-4">
         <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
           {formatNumber(data.pagination.total)} products available
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 xl:gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {data.products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
