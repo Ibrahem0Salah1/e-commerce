@@ -45,6 +45,7 @@ export async function deleteProductAction(productId: string) {
 export async function updateProductAction(productId: string, raw: unknown) {
   const data = updateProductSchema.parse(raw);
 
+  // Update the product
   await prisma.product.update({
     where: { id: productId },
     data: {
@@ -63,10 +64,24 @@ export async function updateProductAction(productId: string, raw: unknown) {
     },
   });
 
+  // If basePrice changed, sync with default variant
+  if (data.basePrice) {
+    const variants = await prisma.variant.findMany({
+      where: { productId },
+    });
+
+    // If product has exactly 1 variant named "default", update its price
+    if (variants.length === 1) {
+      await prisma.variant.update({
+        where: { id: variants[0].id },
+        data: { price: data.basePrice },
+      });
+    }
+  }
+
   console.log("[CACHE INVALIDATE] updateProductAction - product:", productId);
   revalidateTag("products", "max");
 }
-
 export async function updateVariantAction(variantId: string, raw: unknown) {
   const data = updateVariantSchema.parse(raw);
 
