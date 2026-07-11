@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import prisma from "@/lib/prisma";
+import prisma from "@/lib/config/prisma";
 
 export const getCategories = unstable_cache(
   async () => {
@@ -14,7 +14,7 @@ export const getCategories = unstable_cache(
     });
   },
   ["categories-nav"],
-  { revalidate: 3600 }, // re-fetch at most once per hour
+  { revalidate: 3600 },
 );
 
 export const getBrands = unstable_cache(
@@ -31,5 +31,5 @@ export const getBrands = unstable_cache(
     });
   },
   ["brands-nav"],
-  { revalidate: 3600 }, //
+  { revalidate: 3600 },
 );

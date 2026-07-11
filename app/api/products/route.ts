@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProductsServer } from "@/lib/products";
-import { filtersParsers } from "@/lib/filtersParams";
+import { filtersParsers } from "@/lib/products/filters";
 import { createSearchParamsCache } from "nuqs/server";
 
 const cache = createSearchParamsCache(filtersParsers);

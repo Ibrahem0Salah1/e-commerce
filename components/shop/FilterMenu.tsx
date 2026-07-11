@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -20,11 +19,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useProductFilters } from "@/hooks/use-product-filters";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm, type SubmitHandler } from "react-hook-form";
-import { filtersSchema, FiltersFormFields } from "@/lib/types";
+import { FiltersFormFields } from "@/lib/types";
 const sortOptions = [
   { value: "name", label: "Name" },
   { value: "price_asc", label: "Price: low to high" },
@@ -129,31 +127,28 @@ export function FilterMenu({
 
           <Separator />
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label>Brand</Label>
             <Controller
               control={control}
               name="brand"
               render={({ field }) => (
-                <RadioGroup
+                <Select
                   value={field.value || "all"}
                   onValueChange={(value) => field.onChange(value === "all" ? "" : value)}
                 >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem id="mobile-brand-all" value="all" />
-                    <Label htmlFor="mobile-brand-all" className="font-normal">
-                      All brands
-                    </Label>
-                  </div>
-                  {brands.map((brand) => (
-                    <div key={brand.id} className="flex items-center gap-2">
-                      <RadioGroupItem id={`mobile-brand-${brand.id}`} value={brand.slug} />
-                      <Label htmlFor={`mobile-brand-${brand.id}`} className="font-normal">
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All brands" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 overflow-y-auto">
+                    <SelectItem value="all">All brands</SelectItem>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.slug}>
                         {brand.name}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             />
           </div>

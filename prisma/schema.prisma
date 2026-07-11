@@ -34,18 +34,23 @@ enum DiscountType {
 // ─────────────────────────────────────────
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  emailVerified Boolean  @default(false)
-  image         String?
-  phone         String?
-  role          Role     @default(USER)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  image            String?
+  phone            String?
+  role             Role      @default(USER)
+  banned           Boolean   @default(false)
+  banReason        String?
+  banExpires       DateTime?
+  twoFactorEnabled Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   sessions  Session[]
   accounts  Account[]
+  twoFactor TwoFactor?
   orders    Order[]
   cartItems CartItem[]
   reviews   Review[]
@@ -54,19 +59,33 @@ model User {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String
+  token          String   @unique
+  expiresAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("sessions")
+}
+
+model TwoFactor {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  secret      String
+  backupCodes String
+  verified    Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@map("two_factors")
 }
 
 model Account {
@@ -136,26 +155,28 @@ model Brand {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
   name        String
-  slug        String   @unique
-  description String?
+  slug        String               @unique
+  description String[]
+  madeIn      String? // optional country of origin
   // reference price for listing pages before variant is selected
   // always set to the lowest variant price — update when variants change
-  basePrice   Decimal  @db.Decimal(10, 2)
+  basePrice   Decimal              @db.Decimal(10, 2)
   images      String[]
   categoryId  String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  category   Category             @relation(fields: [categoryId], references: [id])
-  variants   Variant[]
-  specGroups SpecificationGroup[]
-  reviews    Review[]
-  brand      Brand?               @relation(fields: [brandId], references: [id])
-  brandId    String?
-  featured   Boolean              @default(false)
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  archived    Boolean              @default(false)
+  category    Category             @relation(fields: [categoryId], references: [id])
+  variants    Variant[]
+  specGroups  SpecificationGroup[]
+  reviews     Review[]
+  brand       Brand?               @relation(fields: [brandId], references: [id])
+  brandId     String?
+  featured    Boolean              @default(false)
+  bestSeller  Boolean              @default(false)
 
   @@index([categoryId])
   @@index([brandId])
@@ -171,20 +192,21 @@ model Product {
 // Single-option products get one variant named "Default".
 // Examples: "Small", "Roth 0.022", "Shade A2", "Default"
 model Variant {
-  id        String   @id @default(cuid())
-  productId String
-  name      String // "Small" / "Shade A2" / "Default"
-  sku       String?  @unique
-  price     Decimal  @db.Decimal(10, 2)
-  stock     Int      @default(0)
-  image     String? // optional variant-specific image
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  cartItems  CartItem[]
-  orderItems OrderItem[]
+  id                String      @id @default(cuid())
+  productId         String
+  name              String // "Small" / "Shade A2" / "Default"
+  sku               String?     @unique
+  price             Decimal     @db.Decimal(10, 2)
+  stock             Int         @default(0)
+  isLimitedQuantity Boolean     @default(false)
+  image             String? // optional variant-specific image
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  archived          Boolean     @default(false)
+  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
 
   @@unique([productId, name]) // no duplicate variant names per product
   @@index([productId])
@@ -225,7 +247,7 @@ model Specification {
 
   group SpecificationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  @@unique([groupId, key]) // no duplicate keys within the same group
+  //@@unique([groupId, key]) // no duplicate keys within the same group
   @@index([groupId, position])
   @@map("specifications")
 }
@@ -325,15 +347,17 @@ model Order {
   couponCode String?
 
   // shipping info inline — no address book for MVP
-  shippingName    String
-  shippingPhone   String
-  shippingAddress String
-  shippingCity    String
-  shippingNotes   String?
-
-  cancelledAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  shippingName     String
+  shippingPhone    String
+  shippingAddress  String
+  shippingCity     String
+  shippingNotes    String?
+  idempotencyKey   String?   @unique
+  guestAccessToken String? // hashed token stored server-side
+  guestTokenExpiry DateTime? // tokens expire after 30 days
+  cancelledAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   user   User?       @relation(fields: [userId], references: [id])
   coupon Coupon?     @relation(fields: [couponId], references: [id])

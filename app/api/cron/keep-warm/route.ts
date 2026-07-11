@@ -1,6 +1,6 @@
 // app/api/cron/keep-warm/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/lib/config/prisma";
 
 export const runtime = "nodejs";
 

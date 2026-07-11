@@ -1,17 +1,17 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { CartItem } from "./types";
+import { persist, createJSONStorage } from "zustand/middleware";
+import type { CartItem } from "@/lib/types";
 
-type CartState = {
+interface CartState {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
-};
+}
 
-export const useGuestCart = create<CartState>()(
-  persist(
+export const useGuestCart = create(
+  persist<CartState>(
     (set) => ({
       items: [],
 
@@ -50,6 +50,6 @@ export const useGuestCart = create<CartState>()(
 
       clearCart: () => set({ items: [] }),
     }),
-    { name: "mds-cart" },
+    { name: "mds-cart", storage: createJSONStorage(() => localStorage) },
   ),
 );

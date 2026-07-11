@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/useCart";
 import type { ProductDetail } from "@/lib/types";
+import { formatNumber } from "@/lib/utils/format";
 import { useState } from "react";
 
 export function AddToCartButton({ product }: { product: ProductDetail }) {
@@ -105,7 +106,7 @@ export function AddToCartButton({ product }: { product: ProductDetail }) {
       <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3">
         <span className="text-sm text-muted-foreground">Total</span>
         <span className="text-xl font-bold text-foreground">
-          {(price * quantity).toLocaleString()}
+          {formatNumber(price * quantity)}
           <span className="ml-1 text-sm font-normal text-muted-foreground">EGP</span>
         </span>
       </div>

@@ -31,9 +31,10 @@ export const filtersParsers = {
     .withDefault(1)
     .withOptions({ clearOnDefault: true, scroll: true }),
   limit: parseAsInteger
-    .withDefault(12)
+    .withDefault(20)
     .withOptions({ clearOnDefault: true, scroll: true }),
 };
+
 export const searchParamsCache = createSearchParamsCache(filtersParsers);
 
 export type ProductFilters = inferParserType<typeof filtersParsers>;

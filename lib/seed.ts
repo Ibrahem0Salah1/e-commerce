@@ -232,8 +232,7 @@ async function main() {
     data: {
       name: "Self-Ligating Metal Brackets — Roth Prescription",
       slug: "self-ligating-metal-brackets-roth",
-      description:
-        "Precision-milled stainless steel self-ligating brackets with Roth prescription. Reduced friction design for faster archwire engagement and improved patient comfort.",
+      description: ["Precision-milled stainless steel self-ligating brackets with Roth prescription. Reduced friction design for faster archwire engagement and improved patient comfort."],
       basePrice: 850,
       images: [productImg("Self-Ligating Brackets")],
       categoryId: catOrtho.id,
@@ -301,8 +300,7 @@ async function main() {
     data: {
       name: "Superelastic NiTi Archwires",
       slug: "superelastic-niti-archwires",
-      description:
-        "Nickel-titanium archwires with consistent superelastic force delivery across a wide temperature range. Ideal for initial leveling and alignment stages.",
+      description: ["Nickel-titanium archwires with consistent superelastic force delivery across a wide temperature range. Ideal for initial leveling and alignment stages."],
       basePrice: 180,
       images: [productImg("NiTi Archwires")],
       categoryId: catOrtho.id,
@@ -362,8 +360,7 @@ async function main() {
     data: {
       name: "Rotary NiTi Endodontic File System",
       slug: "rotary-niti-endodontic-file-system",
-      description:
-        "Heat-treated NiTi rotary files engineered for flexibility and resistance to cyclic fatigue. Optimized cross-section for efficient debris removal during root canal shaping.",
+      description: ["Heat-treated NiTi rotary files engineered for flexibility and resistance to cyclic fatigue. Optimized cross-section for efficient debris removal during root canal shaping."],
       basePrice: 620,
       images: [productImg("Rotary Endo Files")],
       categoryId: catEndo.id,
@@ -421,8 +418,7 @@ async function main() {
     data: {
       name: "Gutta Percha Obturation Points",
       slug: "gutta-percha-obturation-points",
-      description:
-        "Standardized gutta percha points for root canal obturation, color-coded by ISO size for accurate fit verification with rotary file systems.",
+      description: ["Standardized gutta percha points for root canal obturation, color-coded by ISO size for accurate fit verification with rotary file systems."],
       basePrice: 95,
       images: [productImg("Gutta Percha Points")],
       categoryId: catEndo.id,
@@ -466,8 +462,7 @@ async function main() {
     data: {
       name: "Universal Nano-Hybrid Composite Resin",
       slug: "universal-nano-hybrid-composite-resin",
-      description:
-        "Light-cured nano-hybrid composite with high polish retention and shade-blending optical properties, suitable for anterior and posterior restorations.",
+      description: ["Light-cured nano-hybrid composite with high polish retention and shade-blending optical properties, suitable for anterior and posterior restorations."],
       basePrice: 480,
       images: [productImg("Composite Resin")],
       categoryId: catRestorative.id,
@@ -546,8 +541,7 @@ async function main() {
     data: {
       name: "Universal Adhesive Bonding Agent",
       slug: "universal-adhesive-bonding-agent",
-      description:
-        "Single-component universal adhesive compatible with total-etch, self-etch, and selective-etch techniques. Reliable bond strength to enamel and dentin.",
+      description: ["Single-component universal adhesive compatible with total-etch, self-etch, and selective-etch techniques. Reliable bond strength to enamel and dentin."],
       basePrice: 720,
       images: [productImg("Bonding Agent")],
       categoryId: catRestorative.id,
@@ -590,8 +584,7 @@ async function main() {
     data: {
       name: "Wireless LED Curing Light",
       slug: "wireless-led-curing-light",
-      description:
-        "Cordless LED curing light with multiple curing modes and a broad spectrum output compatible with all light-cured dental materials. Includes radiometer for output verification.",
+      description: ["Cordless LED curing light with multiple curing modes and a broad spectrum output compatible with all light-cured dental materials. Includes radiometer for output verification."],
       basePrice: 4200,
       images: [productImg("LED Curing Light")],
       categoryId: catEquipment.id,
@@ -653,8 +646,7 @@ async function main() {
     data: {
       name: "High-Speed Air Turbine Handpiece",
       slug: "high-speed-air-turbine-handpiece",
-      description:
-        "Lightweight high-speed handpiece with push-button bur release, ceramic bearings for reduced noise and vibration, and fiber-optic illumination.",
+      description: ["Lightweight high-speed handpiece with push-button bur release, ceramic bearings for reduced noise and vibration, and fiber-optic illumination."],
       basePrice: 3100,
       images: [productImg("Handpiece")],
       categoryId: catEquipment.id,
@@ -703,8 +695,7 @@ async function main() {
     data: {
       name: "Nitrile Examination Gloves — Powder Free",
       slug: "nitrile-examination-gloves-powder-free",
-      description:
-        "Latex-free nitrile examination gloves with textured fingertips for secure grip. Suitable for clinical examination and minor procedures.",
+      description: ["Latex-free nitrile examination gloves with textured fingertips for secure grip. Suitable for clinical examination and minor procedures."],
       basePrice: 220,
       images: [productImg("Nitrile Gloves")],
       categoryId: catDisposables.id,
@@ -759,8 +750,7 @@ async function main() {
     data: {
       name: "3-Ply Disposable Face Masks",
       slug: "3-ply-disposable-face-masks",
-      description:
-        "Fluid-resistant 3-ply face masks with adjustable nose wire and soft ear loops. Suitable for everyday clinical use.",
+      description: ["Fluid-resistant 3-ply face masks with adjustable nose wire and soft ear loops. Suitable for everyday clinical use."],
       basePrice: 110,
       images: [productImg("Face Masks")],
       categoryId: catDisposables.id,
@@ -808,8 +798,7 @@ async function main() {
     data: {
       name: "5% Sodium Fluoride Varnish",
       slug: "5-percent-sodium-fluoride-varnish",
-      description:
-        "Fast-setting fluoride varnish for caries prevention, available in multiple flavors. Unit-dose packaging for cross-contamination control.",
+      description: ["Fast-setting fluoride varnish for caries prevention, available in multiple flavors. Unit-dose packaging for cross-contamination control."],
       basePrice: 650,
       images: [productImg("Fluoride Varnish")],
       categoryId: catHygiene.id,
@@ -861,8 +850,7 @@ async function main() {
     data: {
       name: "Prophylaxis Polishing Paste",
       slug: "prophylaxis-polishing-paste",
-      description:
-        "Fluoride-containing prophy paste with fine pumice particles for effective stain removal and tooth polishing during routine cleanings.",
+      description: ["Fluoride-containing prophy paste with fine pumice particles for effective stain removal and tooth polishing during routine cleanings."],
       basePrice: 310,
       images: [productImg("Prophy Paste")],
       categoryId: catHygiene.id,
@@ -906,8 +894,7 @@ async function main() {
     data: {
       name: "Lidocaine 2% with Epinephrine — Anesthetic Cartridges",
       slug: "lidocaine-2-percent-epinephrine-cartridges",
-      description:
-        "Sterile local anesthetic cartridges for dental procedures, providing rapid onset and reliable duration of anesthesia.",
+      description: ["Sterile local anesthetic cartridges for dental procedures, providing rapid onset and reliable duration of anesthesia."],
       basePrice: 540,
       images: [productImg("Anesthetic Cartridges")],
       categoryId: catAnesthesia.id,
@@ -954,8 +941,7 @@ async function main() {
     data: {
       name: "Digital Intraoral X-ray Sensor",
       slug: "digital-intraoral-xray-sensor",
-      description:
-        "High-resolution digital sensor for intraoral radiography with USB connectivity and durable scratch-resistant housing.",
+      description: ["High-resolution digital sensor for intraoral radiography with USB connectivity and durable scratch-resistant housing."],
       basePrice: 18500,
       images: [productImg("X-ray Sensor")],
       categoryId: catRadiology.id,
@@ -1000,8 +986,7 @@ async function main() {
     data: {
       name: "Sodium Hypochlorite Irrigation Solution",
       slug: "sodium-hypochlorite-irrigation-solution",
-      description:
-        "Buffered sodium hypochlorite solution for root canal disinfection and debris dissolution during endodontic treatment.",
+      description: ["Buffered sodium hypochlorite solution for root canal disinfection and debris dissolution during endodontic treatment."],
       basePrice: 145,
       images: [productImg("Irrigation Solution")],
       categoryId: catEndo.id,

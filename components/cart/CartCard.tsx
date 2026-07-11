@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/lib/types";
+import { formatNumber } from "@/lib/utils/format";
 
 type CartCardProps = {
   item: CartItem;
@@ -40,7 +41,7 @@ export function CartCard({ item, onUpdateQuantity, onRemove }: CartCardProps) {
               {item.variantName}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {item.price.toLocaleString()} EGP / item
+              {formatNumber(item.price)} EGP / item
             </p>
           </div>
 
@@ -81,7 +82,7 @@ export function CartCard({ item, onUpdateQuantity, onRemove }: CartCardProps) {
           </div>
 
           <span className="text-sm font-semibold tabular-nums">
-            {lineTotal.toLocaleString()}
+            {formatNumber(lineTotal)}
             <span className="ml-0.5 text-xs font-normal text-muted-foreground">
               EGP
             </span>

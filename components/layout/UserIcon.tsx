@@ -1,10 +1,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User as UserIcon, Settings } from "lucide-react";
+import { ShieldCheck, User as UserIcon, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { signOutAction } from "@/lib/auth.actions";
+import { signOutAction } from "@/lib/auth/actions";
 import { SessionUser } from "@/lib/types";
+import { isAdminRole } from "@/lib/auth/roles";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,7 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// import { authClient } from "@/lib/auth-client";
+// import { authClient } from "@/lib/auth/client";
 
 
 
@@ -49,6 +50,13 @@ export default function UserMenu({ user }: { user: SessionUser | null }) {
                     {user.email}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isAdminRole(user.role) && (
+                    <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex cursor-pointer items-center gap-2">
+                            <ShieldCheck className="h-4 w-4" /> Admin
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                     <Link href={`/profile/${user.id}`} className="flex cursor-pointer items-center gap-2">
                         <UserIcon className="h-4 w-4" /> Profile
