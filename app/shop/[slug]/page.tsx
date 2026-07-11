@@ -45,7 +45,7 @@ export default async function ProductPage({
     ? [product.description[0]]
     : [];
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto min-w-7xl    px-4 py-8 sm:px-6 lg:px-8">
       <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">
           Home
@@ -127,49 +127,49 @@ export default async function ProductPage({
             <h2 className="mb-5 text-lg font-semibold text-foreground">
               Specifications
             </h2>
-              <Accordion type="multiple" defaultValue={product.specs.map((_, i) => `spec-${i}`)}>
-                {product.specs.map((group, i) => {
-                  const distinctKeys = new Set(group.specs.map(s => s.key));
-                  const singleKey = distinctKeys.size === 1;
+            <Accordion type="multiple" defaultValue={product.specs.map((_, i) => `spec-${i}`)}>
+              {product.specs.map((group, i) => {
+                const distinctKeys = new Set(group.specs.map(s => s.key));
+                const singleKey = distinctKeys.size === 1;
 
-                  if (group.specs.length === 0) return null;
+                if (group.specs.length === 0) return null;
 
-                  return (
-                    <AccordionItem key={group.name} value={`spec-${i}`}>
-                      <AccordionTrigger className="text-sm font-medium">
-                        {group.name}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {singleKey ? (
-                          <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
-                            {group.specs.map((spec) => (
-                              <li key={spec.id} className="py-0.5">{spec.value}</li>
+                return (
+                  <AccordionItem key={group.name} value={`spec-${i}`}>
+                    <AccordionTrigger className="text-sm font-medium">
+                      {group.name}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {singleKey ? (
+                        <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
+                          {group.specs.map((spec) => (
+                            <li key={spec.id} className="py-0.5">{spec.value}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {group.specs.map((spec, j) => (
+                              <tr
+                                key={spec.id}
+                                className={j < group.specs.length - 1 ? "border-b border-border" : ""}
+                              >
+                                <td className="py-2.5 pr-4 text-muted-foreground w-1/2">
+                                  {spec.key}
+                                </td>
+                                <td className="py-2.5 text-foreground font-medium">
+                                  {spec.value}
+                                </td>
+                              </tr>
                             ))}
-                          </ul>
-                        ) : (
-                          <table className="w-full text-sm">
-                            <tbody>
-                              {group.specs.map((spec, j) => (
-                                <tr
-                                  key={spec.id}
-                                  className={j < group.specs.length - 1 ? "border-b border-border" : ""}
-                                >
-                                  <td className="py-2.5 pr-4 text-muted-foreground w-1/2">
-                                    {spec.key}
-                                  </td>
-                                  <td className="py-2.5 text-foreground font-medium">
-                                    {spec.value}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
+                          </tbody>
+                        </table>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </section>
         )}
 
