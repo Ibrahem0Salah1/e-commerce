@@ -14,7 +14,7 @@ import { formatNumber } from "@/lib/utils/format";
 import { AddToCartButton } from "./AddToCartButton";
 import { ImageGallery } from "./ImageGallery";
 import { TruncatedDescription } from "./TruncatedDescription";
-//hello
+
 export async function generateMetadata({ params }: {
   params: Promise<{ slug: string }>;
 }) {
@@ -45,7 +45,7 @@ export default async function ProductPage({
     ? [product.description[0]]
     : [];
   return (
-    <div className="mx-auto min-w-7xl    px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full lg:max-w-7xl   px-4 py-8 sm:px-6 lg:px-8">
       <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/" className="transition-colors hover:text-foreground">
           Home
