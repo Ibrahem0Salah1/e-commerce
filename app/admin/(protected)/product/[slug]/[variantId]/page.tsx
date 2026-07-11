@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getVariantById } from "@/lib/admin/variant";
 import { EditVariantDialog } from "@/components/admin/EditVariantDialog";
 import { formatNumber } from "@/lib/utils/format";
-
+import Image from "next/image";
 type Props = {
   params: Promise<{ slug: string; variantId: string }>;
 };
@@ -97,10 +97,11 @@ export default async function AdminVariantDetailPage({ params }: Props) {
               Image
             </h2>
             <div className="relative mx-auto aspect-square max-w-sm overflow-hidden rounded-lg bg-secondary/40">
-              <img
+              <Image
                 src={variant.image}
                 alt={variant.name}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             </div>
           </div>

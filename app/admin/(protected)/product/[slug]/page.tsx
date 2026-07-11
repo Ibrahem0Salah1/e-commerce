@@ -26,8 +26,8 @@ export default async function AdminProductDetailPage({ params }: Props) {
     prisma.brand.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
   ]);
   const description = product.description && product.description.length > 0
-  ? [product.description[0]]   // ✅ now it's string[] on both branches
-  : []
+    ? [product.description[0]]
+    : []
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">

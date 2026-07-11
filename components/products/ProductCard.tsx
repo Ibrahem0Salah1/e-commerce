@@ -18,7 +18,9 @@ export function ProductCard({ product }: { product: ProductListItem }) {
         product.variants[0];
     const price = selectedVariant?.price ?? product.basePrice;
     const outOfStock = selectedVariant ? selectedVariant.stock <= 0 : false;
-
+    const description = product.description && product.description.length > 0
+        ? [product.description[0]]   // ✅ now it's string[] on both branches
+        : []
     const handleAddToCart = () => {
         if (!selectedVariant || outOfStock) return;
         addItem({
@@ -81,9 +83,9 @@ export function ProductCard({ product }: { product: ProductListItem }) {
                 </Link>
 
                 {/* Description */}
-                {product.description && (
+                {description.length > 0 && (
                     <p className="line-clamp-1 text-xs text-muted-foreground">
-                        {product.description}
+                        {description[0]}
                     </p>
                 )}
 
