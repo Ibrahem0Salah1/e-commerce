@@ -36,7 +36,7 @@ export async function getAdminAllProducts(): Promise<ProductListItem[]> {
 
     return {
       ...rest,
-      description: rest.description ?? [],
+      description: rest.description,
       basePrice: Number(basePrice),
       variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
       variantCount: _count.variants,
