@@ -1,3 +1,4 @@
+// app/admin/%28protected%29/products/ProductsPageClient.tsx
 "use client";
 
 import { useState, useMemo } from "react";
@@ -19,8 +20,8 @@ export function ProductsPageClient({ products }: Props) {
     () =>
       query
         ? products.filter((p) =>
-            p.name.toLowerCase().includes(query.toLowerCase()),
-          )
+          p.name.toLowerCase().includes(query.toLowerCase()),
+        )
         : products,
     [products, query],
   );

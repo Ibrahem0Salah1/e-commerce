@@ -65,7 +65,7 @@ export type ProductDetail = {
   id: string;
   name: string;
   slug: string;
-  description: string[];
+  description: string[] | null;
   basePrice: number;
   images: string[];
   featured: boolean;
@@ -100,7 +100,7 @@ export type AdminProductDetail = {
   id: string;
   name: string;
   slug: string;
-  description: string[];
+  description: string[] | null;
   madeIn: string | null;
   basePrice: number;
   images: string[];

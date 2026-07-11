@@ -11,6 +11,9 @@ export function TruncatedDescription({
   clampLines?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  if (!paragraphs || paragraphs.length === 0) {
+    return null;
+  }
   const needsTruncation = paragraphs.length > 1 || paragraphs.some((p) => p.length > 200);
 
   return (

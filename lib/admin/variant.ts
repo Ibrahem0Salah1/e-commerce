@@ -1,3 +1,4 @@
+//lib/admin/variant.ts
 import "server-only";
 import prisma from "@/lib/config/prisma";
 import type { VariantDetail } from "@/lib/types";

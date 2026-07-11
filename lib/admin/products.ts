@@ -1,3 +1,4 @@
+//lib/admin/products.ts
 import "server-only";
 import prisma from "@/lib/config/prisma";
 import type { ProductListItem } from "@/lib/types";

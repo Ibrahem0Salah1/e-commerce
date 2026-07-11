@@ -1,3 +1,4 @@
+//lib/products/admin-actions.ts
 "use server";
 
 import { revalidateTag } from "next/cache";
@@ -37,7 +38,7 @@ export async function deleteProductAction(productId: string) {
     data: { isActive: false, archived: true },
   });
   console.log("[CACHE INVALIDATE] deleteProductAction - product:", productId);
-  revalidateTag("products", "hours");
+  revalidateTag("products", "max");
   redirect("/admin/products");
 }
 
@@ -63,7 +64,7 @@ export async function updateProductAction(productId: string, raw: unknown) {
   });
 
   console.log("[CACHE INVALIDATE] updateProductAction - product:", productId);
-  revalidateTag("products", "hours");
+  revalidateTag("products", "max");
 }
 
 export async function updateVariantAction(variantId: string, raw: unknown) {
@@ -84,12 +85,14 @@ export async function updateVariantAction(variantId: string, raw: unknown) {
   });
 
   console.log("[CACHE INVALIDATE] updateVariantAction - variant:", variantId);
-  revalidateTag("products", "hours");
+  revalidateTag("products", "max");
 }
 
 import type { AdminProductDetail } from "@/lib/types";
 
-export async function getAdminProductBySlug(slug: string): Promise<AdminProductDetail | null> {
+export async function getAdminProductBySlug(
+  slug: string,
+): Promise<AdminProductDetail | null> {
   const product = await prisma.product.findUnique({
     where: { slug },
     select: {

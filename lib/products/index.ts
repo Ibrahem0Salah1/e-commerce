@@ -1,3 +1,4 @@
+//lib/products/index.ts
 import "server-only";
 import prisma from "@/lib/config/prisma";
 import { Prisma } from "@prisma/client";

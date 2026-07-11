@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Modal } from "./Modal";
 import { updateProductAction } from "@/lib/products/admin-actions";
-
+import type { AdminProductDetail } from "@/lib/types";
 type ProductData = {
   id: string;
   name: string;
@@ -32,7 +32,7 @@ type ProductData = {
 };
 
 type Props = {
-  product: ProductData;
+  product: AdminProductDetail;
   categories: { id: string; name: string; slug: string }[];
   brands: { id: string; name: string; slug: string }[];
 };
@@ -66,7 +66,7 @@ export function EditProductDialog({ product, categories, brands }: Props) {
   const [name, setName] = useState(product.name);
   const [slug, setSlug] = useState(product.slug);
   const [description, setDescription] = useState(
-    product.description.join("\n"),
+    (product.description ?? []).join("\n"),
   );
   const [madeIn, setMadeIn] = useState(product.madeIn ?? "");
   const [basePrice, setBasePrice] = useState(String(product.basePrice));

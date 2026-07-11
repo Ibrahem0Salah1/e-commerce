@@ -1,3 +1,4 @@
+// app/admin/%28protected%29/product/%5Bslug%5D/page.tsx
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,7 +25,9 @@ export default async function AdminProductDetailPage({ params }: Props) {
     prisma.category.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
     prisma.brand.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
   ]);
-
+  const description = product.description && product.description.length > 0
+  ? [product.description[0]]   // ✅ now it's string[] on both branches
+  : []
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
@@ -114,13 +117,13 @@ export default async function AdminProductDetailPage({ params }: Props) {
             </dl>
           </div>
 
-          {product.description.length > 0 && (
+          {description && (
             <div className="rounded-xl border border-border bg-card p-6">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Description
               </h2>
               <div className="space-y-1 text-sm text-foreground">
-                {product.description.map((line, i) => (
+                {description.map((line, i) => (
                   <p key={i}>{line}</p>
                 ))}
               </div>

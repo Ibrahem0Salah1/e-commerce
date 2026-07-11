@@ -1,3 +1,4 @@
+// app/admin/%28protected%29/product/%5Bslug%5D/%5BvariantId%5D/page.tsx
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";

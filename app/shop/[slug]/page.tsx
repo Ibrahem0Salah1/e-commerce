@@ -41,7 +41,9 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
 
   if (!product) notFound();
-
+  const description = product.description && product.description.length > 0
+    ? [product.description[0]]
+    : [];
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -109,8 +111,8 @@ export default async function ProductPage({
             <span className="ml-1 text-lg font-normal text-muted-foreground">EGP</span>
           </p>
 
-          {product.description.length > 0 && (
-            <TruncatedDescription paragraphs={product.description} />
+          {description.length > 0 && (
+            <TruncatedDescription paragraphs={description} />
           )}
 
           <AddToCartButton product={product} />
