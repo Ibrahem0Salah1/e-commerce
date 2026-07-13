@@ -1,5 +1,5 @@
 import { ShopFilters } from "@/components/shop/ShopFilters";
-import { getBrands, getCategories } from "@/lib/categories";
+import { getBrands, getCategories } from "@/lib/categories/queries";
 export default async function ShopListLayout({
     children,
 }: Readonly<{

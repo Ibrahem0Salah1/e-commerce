@@ -8,8 +8,8 @@ import {
     NavigationMenuList,
     NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { getCategories } from "@/lib/categories";
-import { getBrands } from "@/lib/categories";
+import { getCategories } from "@/lib/categories/queries";
+import { getBrands } from "@/lib/categories/queries";
 
 export async function CategoriesMenu() {
     const [categories, brands] = await Promise.all([getCategories(), getBrands()]);

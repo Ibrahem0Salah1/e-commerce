@@ -14,7 +14,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
-    "create-admin": "tsx scripts/create-admin.ts"
+    "create-admin": "tsx scripts/script.js"
   },
   "crons": [
     {

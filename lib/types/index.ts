@@ -1,30 +1,14 @@
-import { z } from "zod";
+import type { ProductListRaw, ProductDetailRaw } from "@/lib/products/selects";
+import type { AdminProductDetailRaw, VariantDetailRaw } from "@/lib/admin/selects";
+import type { TestimonialRaw } from "@/lib/reviews/selects";
 
-export const signUpSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  email: z.string().email("Enter a valid email"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Must contain at least one number"),
-});
-
-export const signInSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
-});
-
-export const otpSchema = z.object({
-  otp: z
-    .string()
-    .length(6, "Code must be 6 digits")
-    .regex(/^\d+$/, "Code must contain only numbers"),
-});
-
-export type OtpForm = z.infer<typeof otpSchema>;
-export type SignUpFormFields = z.infer<typeof signUpSchema>;
-export type SignInFormFields = z.infer<typeof signInSchema>;
+export type {
+  OtpForm,
+  SignUpFormFields,
+  SignInFormFields,
+  FiltersFormFields,
+  CheckoutFormFields,
+} from "@/lib/validations";
 
 export type SessionUser = {
   id: string;
@@ -34,16 +18,12 @@ export type SessionUser = {
   role?: string | null;
 };
 
-export type ProductListItem = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string[];
+export type ProductListItem = Omit<
+  ProductListRaw,
+  "basePrice" | "description" | "variants" | "_count" | "reviews"
+> & {
   basePrice: number;
-  images: string[];
-  featured: boolean;
-  category: { id: string; name: string; slug: string };
-  brand: { id: string; name: string; slug: string; logo: string | null } | null;
+  description: string[];
   variants: { id: string; name: string; price: number; stock: number }[];
   variantCount: number;
   reviewCount: number;
@@ -61,16 +41,11 @@ export type CartItem = {
   quantity: number;
 };
 
-export type ProductDetail = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string[] | null;
+export type ProductDetail = Omit<
+  ProductDetailRaw,
+  "basePrice" | "variants" | "specGroups" | "_count"
+> & {
   basePrice: number;
-  images: string[];
-  featured: boolean;
-  category: { id: string; name: string; slug: string };
-  brand: { id: string; name: string; slug: string; logo: string | null } | null;
   variants: {
     id: string;
     name: string;
@@ -79,37 +54,21 @@ export type ProductDetail = {
     stock: number;
     image: string | null;
     isActive: boolean;
+    archived: boolean;
   }[];
   specs: {
     name: string;
     specs: { id: string; key: string; value: string }[];
   }[];
-  reviews: {
-    id: string;
-    rating: number;
-    title: string | null;
-    body: string | null;
-    createdAt: Date;
-    user: { name: string; image: string | null };
-  }[];
   reviewCount: number;
   rating: number | null;
 };
 
-export type AdminProductDetail = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string[] | null;
-  madeIn: string | null;
+export type AdminProductDetail = Omit<
+  AdminProductDetailRaw,
+  "basePrice" | "variants"
+> & {
   basePrice: number;
-  images: string[];
-  featured: boolean;
-  bestSeller: boolean;
-  isActive: boolean;
-  archived: boolean;
-  category: { id: string; name: string; slug: string };
-  brand: { id: string; name: string; slug: string; logo: string | null } | null;
   variants: {
     id: string;
     name: string;
@@ -118,30 +77,12 @@ export type AdminProductDetail = {
     stock: number;
     image: string | null;
     isActive: boolean;
+    archived: boolean;
   }[];
-  specGroups: {
-    id: string;
-    name: string;
-    position: number;
-    specs: { id: string; key: string; value: string; position: number }[];
-  }[];
-  _count: { reviews: number };
 };
 
-export type VariantDetail = {
-  id: string;
-  name: string;
-  sku: string | null;
+export type VariantDetail = Omit<VariantDetailRaw, "price"> & {
   price: number;
-  stock: number;
-  isLimitedQuantity: boolean;
-  image: string | null;
-  isActive: boolean;
-  archived: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  product: { id: string; name: string; slug: string };
-  productId: string;
 };
 
 export type ProductsResult = {
@@ -154,45 +95,6 @@ export type ProductsResult = {
   };
 };
 
-export type Testimonial = {
-  id: string;
-  rating: number;
-  title: string | null;
-  body: string | null;
-  verifiedPurchase: boolean;
+export type Testimonial = Omit<TestimonialRaw, "createdAt"> & {
   createdAt: string;
-  user: { id: string; name: string; image: string | null };
-  product: { id: string; name: string; slug: string };
 };
-
-export const filtersSchema = z.object({
-  category: z.string().default(""),
-  brand: z.string().default(""),
-  featured: z.boolean().default(false),
-  sort: z.enum(["price_asc", "price_desc", "name"]).default("name"),
-  q: z.string().default(""),
-});
-
-export type FiltersFormFields = z.infer<typeof filtersSchema>;
-
-export const checkoutSchema = z.object({
-  idempotencyKey: z.string().min(1),
-  items: z
-    .array(
-      z.object({
-        variantId: z.string().cuid(),
-        quantity: z.number().int().min(1).max(100),
-      }),
-    )
-    .min(1, "Cart cannot be empty"),
-  couponCode: z.string().optional(),
-  shippingName: z.string().min(2),
-  shippingPhone: z.string().min(8),
-  shippingAddress: z.string().min(5),
-  shippingCity: z.string().min(2),
-  shippingNotes: z.string().optional(),
-  guestEmail: z.string().email().optional(),
-  guestName: z.string().optional(),
-});
-
-export type CheckoutFormFields = z.infer<typeof checkoutSchema>;

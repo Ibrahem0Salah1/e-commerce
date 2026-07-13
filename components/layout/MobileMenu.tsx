@@ -24,8 +24,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SessionUser } from "@/lib/types";
 import { signOutAction } from "@/lib/auth/actions";
-import type { getCategories } from "@/lib/categories";
-import type { getBrands } from "@/lib/categories";
+import type { getCategories } from "@/lib/categories/queries";
+import type { getBrands } from "@/lib/categories/queries";
 
 type Category = Awaited<ReturnType<typeof getCategories>>[number];
 type Brand = Awaited<ReturnType<typeof getBrands>>[number];

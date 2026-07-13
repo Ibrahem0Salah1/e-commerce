@@ -111,6 +111,7 @@ export const auth = betterAuth({
   plugins: [
     admin({
       ac: adminAccessControl,
+      provider: "emailAndPassword",
       roles: {
         USER: userRole,
         ADMIN: adminRole,

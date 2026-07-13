@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { signInSchema, otpSchema, OtpForm, SignInFormFields } from "@/lib/types"
+import { signInSchema, otpSchema } from "@/lib/validations"
+import type { OtpForm, SignInFormFields } from "@/lib/types"
 
 
 

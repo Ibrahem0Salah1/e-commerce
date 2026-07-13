@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth/server";
 import { headers } from "next/headers";
-import { signInSchema, signUpSchema } from "@/lib/types";
+import { signInSchema, signUpSchema } from "@/lib/validations";
 import { redirect } from "next/navigation";
 import { APIError } from "better-auth/api";
 

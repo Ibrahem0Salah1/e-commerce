@@ -22,7 +22,7 @@ import { useProductFilters } from "@/hooks/use-product-filters";
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm, type SubmitHandler } from "react-hook-form";
-import { FiltersFormFields } from "@/lib/types";
+import type { FiltersFormFields } from "@/lib/types";
 const sortOptions = [
   { value: "name", label: "Name" },
   { value: "price_asc", label: "Price: low to high" },

@@ -9,7 +9,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { getProductBySlug } from "@/lib/products";
+import { getProductBySlug } from "@/lib/products/queries";
 import { formatNumber } from "@/lib/utils/format";
 import { AddToCartButton } from "./AddToCartButton";
 import { ImageGallery } from "./ImageGallery";

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck, Truck, Banknote } from "lucide-react";
 import Logo from "./Logo";
-import { getCategories } from "@/lib/categories";
+import { getCategories } from "@/lib/categories/queries";
 
 export async function Footer() {
     const categories = await getCategories();

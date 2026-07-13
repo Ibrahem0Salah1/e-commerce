@@ -2,7 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/config/prisma";
-import { checkoutSchema } from "@/lib/types";
+import { checkoutSchema } from "@/lib/validations";
 import { auth } from "@/lib/auth/server";
 import { headers } from "next/headers";
 import { Decimal } from "@prisma/client/runtime/library";

@@ -2,7 +2,8 @@
 
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signInSchema, SignInFormFields } from "@/lib/types";
+import { signInSchema } from "@/lib/validations";
+import type { SignInFormFields } from "@/lib/types";
 import { signInAction } from "@/lib/auth/actions";
 import { signIn } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";

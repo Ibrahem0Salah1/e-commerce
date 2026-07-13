@@ -12,7 +12,7 @@ import {
   Users,
   LogOut,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/auth/actions";
 import { useSession } from "@/lib/auth/client";
