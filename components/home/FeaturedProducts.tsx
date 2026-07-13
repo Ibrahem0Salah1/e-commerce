@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getFeaturedProducts } from "@/lib/products";
+import { getFeaturedProducts } from "@/lib/products/queries";
 import { CardsSlider, type CardData } from "@/components/home/CardsSlider";
 
 export async function FeaturedProducts() {

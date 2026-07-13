@@ -1,4 +1,3 @@
-//lib/products/index.ts
 import "server-only";
 import prisma from "@/lib/config/prisma";
 import { Prisma } from "@prisma/client";
@@ -9,6 +8,7 @@ import type {
   ProductsResult,
 } from "@/lib/types";
 import type { ProductFilters } from "@/lib/products/filters";
+import { productListSelect, productDetailSelect } from "@/lib/products/selects";
 
 async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
   console.log(
@@ -39,30 +39,13 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
       orderBy,
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        basePrice: true,
-        images: true,
-        featured: true,
-        category: { select: { id: true, name: true, slug: true } },
-        brand: { select: { id: true, name: true, slug: true, logo: true } },
-        variants: {
-          where: { isActive: true },
-          orderBy: { price: "asc" },
-          select: { id: true, name: true, price: true, stock: true },
-        },
-        reviews: { select: { rating: true } },
-        _count: { select: { reviews: true, variants: true } },
-      },
+      select: productListSelect,
     }),
     prisma.product.count({ where }),
   ]);
 
   const data = products.map(
-    ({ reviews, _count, variants, basePrice, ...rest }) => {
+    ({ reviews, _count, variants, basePrice, description, ...rest }) => {
       const avgRating =
         reviews.length > 0
           ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -70,6 +53,7 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
 
       return {
         ...rest,
+        description: description ?? [],
         basePrice: Number(basePrice),
         variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
         variantCount: _count.variants,
@@ -123,54 +107,7 @@ export const getProductBySlug = unstable_cache(
 
     const product = await prisma.product.findUnique({
       where: { slug, isActive: true },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        basePrice: true,
-        images: true,
-        featured: true,
-        category: { select: { id: true, name: true, slug: true } },
-        brand: { select: { id: true, name: true, slug: true, logo: true } },
-        variants: {
-          where: { isActive: true },
-          orderBy: { price: "asc" },
-          select: {
-            id: true,
-            name: true,
-            sku: true,
-            price: true,
-            stock: true,
-            image: true,
-            isActive: true,
-          },
-        },
-        specGroups: {
-          orderBy: { position: "asc" },
-          select: {
-            name: true,
-            specs: {
-              orderBy: { position: "asc" },
-              select: { id: true, key: true, value: true },
-            },
-          },
-        },
-        reviews: {
-          where: { isVisible: true },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-          select: {
-            id: true,
-            rating: true,
-            title: true,
-            body: true,
-            createdAt: true,
-            user: { select: { name: true, image: true } },
-          },
-        },
-        _count: { select: { reviews: true } },
-      },
+      select: productDetailSelect,
     });
 
     if (!product) return null;
@@ -192,7 +129,6 @@ export const getProductBySlug = unstable_cache(
         price: Number(v.price),
       })),
       specs: product.specGroups,
-      reviews: product.reviews,
       reviewCount: product._count.reviews,
       rating: avgRating,
     };
@@ -208,41 +144,27 @@ export const getAllProducts = unstable_cache(
     const products = await prisma.product.findMany({
       where: { isActive: true, archived: false },
       orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        basePrice: true,
-        images: true,
-        featured: true,
-        category: { select: { id: true, name: true, slug: true } },
-        brand: { select: { id: true, name: true, slug: true, logo: true } },
-        variants: {
-          where: { isActive: true },
-          orderBy: { price: "asc" },
-          select: { id: true, name: true, price: true, stock: true },
-        },
-        reviews: { select: { rating: true } },
-        _count: { select: { reviews: true, variants: true } },
+      select: productListSelect,
+    });
+
+    return products.map(
+      ({ reviews, _count, variants, basePrice, description, ...rest }) => {
+        const avgRating =
+          reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            : null;
+
+        return {
+          ...rest,
+          description: description ?? [],
+          basePrice: Number(basePrice),
+          variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
+          variantCount: _count.variants,
+          reviewCount: _count.reviews,
+          rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+        };
       },
-    });
-
-    return products.map(({ reviews, _count, variants, basePrice, ...rest }) => {
-      const avgRating =
-        reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-          : null;
-
-      return {
-        ...rest,
-        basePrice: Number(basePrice),
-        variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
-        variantCount: _count.variants,
-        reviewCount: _count.reviews,
-        rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
-      };
-    });
+    );
   },
   ["products-all"],
   { revalidate: 3600, tags: ["products"] },

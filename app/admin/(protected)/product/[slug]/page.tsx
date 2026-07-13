@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { deleteProductAction, getAdminProductBySlug } from "@/lib/products/admin-actions";
+import { deleteProductAndInvalidate } from "@/lib/admin/actions";
+import { getAdminProductBySlug } from "@/lib/admin/products";
 import { EditProductDialog } from "@/components/admin/EditProductDialog";
 import { formatNumber } from "@/lib/utils/format";
 import prisma from "@/lib/config/prisma";
@@ -59,7 +60,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
           <form
             action={async () => {
               "use server";
-              await deleteProductAction(product.id);
+              await deleteProductAndInvalidate(product.id);
             }}
           >
             <Button

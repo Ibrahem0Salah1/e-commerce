@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/server";
 import { headers } from "next/headers";
 import prisma from "@/lib/config/prisma";
 import type { CartItem } from "@/lib/types";
+import { fetchCartItems } from "@/lib/cart/queries";
 
 type ActionResult =
   | {
@@ -18,34 +19,7 @@ type ActionResult =
 export async function getCartAction(): Promise<CartItem[]> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return [];
-
-  const cartItems = await prisma.cartItem.findMany({
-    where: { userId: session.user.id },
-    include: {
-      variant: {
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          image: true,
-          product: {
-            select: { id: true, slug: true, name: true, images: true },
-          },
-        },
-      },
-    },
-  });
-
-  return cartItems.map((ci) => ({
-    variantId: ci.variantId,
-    productId: ci.variant.product.id,
-    slug: ci.variant.product.slug,
-    name: ci.variant.product.name,
-    price: Number(ci.variant.price),
-    image: ci.variant.product.images[0] ?? ci.variant.image ?? "",
-    variantName: ci.variant.name,
-    quantity: ci.quantity,
-  }));
+  return fetchCartItems(session.user.id);
 }
 
 export async function addToCartAction(

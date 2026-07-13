@@ -1,7 +1,7 @@
-//lib/admin/variant.ts
 import "server-only";
 import prisma from "@/lib/config/prisma";
 import type { VariantDetail } from "@/lib/types";
+import { variantDetailSelect } from "@/lib/admin/selects";
 
 export async function getVariantById(
   id: string,
@@ -10,21 +10,7 @@ export async function getVariantById(
 
   const variant = await prisma.variant.findUnique({
     where: { id },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      price: true,
-      stock: true,
-      isLimitedQuantity: true,
-      image: true,
-      isActive: true,
-      archived: true,
-      createdAt: true,
-      updatedAt: true,
-      productId: true,
-      product: { select: { id: true, name: true, slug: true } },
-    },
+    select: variantDetailSelect,
   });
 
   if (!variant) return null;

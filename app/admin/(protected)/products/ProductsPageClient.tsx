@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ProductList } from "@/components/admin/ProductList";
-import { deleteProductAction } from "@/lib/products/admin-actions";
+import { deleteProductAndInvalidate } from "@/lib/admin/actions";
 import type { ProductListItem } from "@/lib/types";
 
 type Props = {
@@ -29,7 +29,7 @@ export function ProductsPageClient({ products }: Props) {
   async function handleDelete(productId: string) {
     if (!confirm("Are you sure you want to archive this product?")) return;
     setDeleting(productId);
-    await deleteProductAction(productId);
+    await deleteProductAndInvalidate(productId);
   }
 
   return (

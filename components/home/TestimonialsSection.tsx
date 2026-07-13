@@ -1,5 +1,5 @@
 import { ReviewCard } from "@/components/home/ReviewsCard";
-import { getTestimonials } from "@/lib/reviews";
+import { getTestimonials } from "@/lib/reviews/queries";
 
 export async function TestimonialsSection() {
     const reviews = await getTestimonials(6);

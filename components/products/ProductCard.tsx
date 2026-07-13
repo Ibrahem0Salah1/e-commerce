@@ -6,7 +6,7 @@ import { ShoppingCart, Star, Check } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import type { ProductListItem } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { formatNumber } from "@/lib/utils/format";
 
 export function ProductCard({ product }: { product: ProductListItem }) {
