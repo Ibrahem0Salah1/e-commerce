@@ -7,6 +7,10 @@ export type FiltersFormFields = z.infer<typeof filtersSchema>;
 export type CheckoutFormFields = z.infer<typeof checkoutSchema>;
 export type EditProductForm = z.infer<typeof editProductSchema>;
 export type EditVariantForm = z.infer<typeof editVariantSchema>;
+export type AddProductForm = z.infer<typeof addProductFormSchema>;
+export type PurchaseInvoiceForm = z.infer<
+  typeof createPurchaseInvoiceFormSchema
+>;
 
 export const signUpSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -63,7 +67,6 @@ export const updateProductSchema = z.object({
   slug: z.string().min(1),
   description: z.array(z.string()),
   madeIn: z.string().nullable(),
-  basePrice: z.coerce.number().positive(),
   images: z.array(z.string()),
   categoryId: z.string().min(1),
   brandId: z.string().nullable(),
@@ -73,12 +76,13 @@ export const updateProductSchema = z.object({
   bestSeller: z.coerce.boolean(),
 });
 
-export const createProductSchema = z.object({
+export const addProductSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.array(z.string()),
   madeIn: z.string().nullable(),
-  basePrice: z.coerce.number().positive(),
+  price: z.coerce.number().positive(),
+  stock: z.coerce.number().int().min(0),
   images: z.array(z.string()),
   categoryId: z.string().min(1),
   brandId: z.string().nullable(),
@@ -104,7 +108,22 @@ export const editProductSchema = z.object({
   slug: z.string().min(1, "Slug is required"),
   description: z.string(),
   madeIn: z.string(),
-  basePrice: z.number().positive("Price must be positive"),
+  images: z.string(),
+  categoryId: z.string().min(1, "Category is required"),
+  brandId: z.string(),
+  isActive: z.boolean(),
+  archived: z.boolean(),
+  featured: z.boolean(),
+  bestSeller: z.boolean(),
+});
+
+export const addProductFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string(),
+  madeIn: z.string(),
+  price: z.number().positive("Price must be positive"),
+  stock: z.number().int().min(0, "Stock can't be negative"),
   images: z.string(),
   categoryId: z.string().min(1, "Category is required"),
   brandId: z.string(),
@@ -124,3 +143,60 @@ export const editVariantSchema = z.object({
   isActive: z.boolean(),
   archived: z.boolean(),
 });
+
+export const purchaseInvoiceLineSchema = z.object({
+  variantId: z.string().min(1, "Select a variant"),
+  costPrice: z.coerce.number().positive("Cost price must be greater than 0"),
+  marginPercent: z.coerce.number().positive("Margin must be greater than 0"),
+  quantityAdded: z.coerce
+    .number()
+    .int()
+    .positive("Quantity must be at least 1"),
+});
+
+export const purchaseInvoiceLineFormSchema = z.object({
+  variantId: z.string().min(1, "Select a variant"),
+  costPrice: z.number().positive("Cost price must be greater than 0"),
+  marginPercent: z.number().positive("Margin must be greater than 0"),
+  quantityAdded: z.number().int().positive("Quantity must be at least 1"),
+});
+
+export const createPurchaseInvoiceSchema = z
+  .object({
+    supplierName: z.string().min(1, "Supplier name is required"),
+    invoiceNumber: z.string().optional(),
+    supplierPhone: z.string().min(1, "Supplier phone is required"),
+    lines: z
+      .array(purchaseInvoiceLineSchema)
+      .min(1, "Add at least one product"),
+  })
+  .refine(
+    (data) => {
+      const ids = data.lines.map((l) => l.variantId);
+      return ids.length === new Set(ids).size;
+    },
+    {
+      message: "Each variant can only appear once per invoice",
+      path: ["lines"],
+    },
+  );
+
+export const createPurchaseInvoiceFormSchema = z
+  .object({
+    supplierName: z.string().min(1, "Supplier name is required"),
+    invoiceNumber: z.string().optional(),
+    supplierPhone: z.string().min(1, "Supplier phone is required"),
+    lines: z
+      .array(purchaseInvoiceLineFormSchema)
+      .min(1, "Add at least one product"),
+  })
+  .refine(
+    (data) => {
+      const ids = data.lines.map((l) => l.variantId);
+      return ids.length === new Set(ids).size;
+    },
+    {
+      message: "Each variant can only appear once per invoice",
+      path: ["lines"],
+    },
+  );

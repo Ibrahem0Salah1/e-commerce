@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,6 @@ export function EditProductDialog({ product, categories, brands }: Props) {
       slug: product.slug,
       description: (product.description ?? []).join("\n"),
       madeIn: product.madeIn ?? "",
-      basePrice: product.basePrice,
       images: product.images.join("\n"),
       categoryId: product.category.id,
       brandId: product.brand?.id ?? "",
@@ -52,27 +52,35 @@ export function EditProductDialog({ product, categories, brands }: Props) {
   });
 
   const onSubmit: SubmitHandler<EditProductForm> = async (data) => {
-    await updateProductAndInvalidate(product.id, {
-      name: data.name,
-      slug: data.slug,
-      description: data.description
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean),
-      madeIn: data.madeIn || null,
-      basePrice: data.basePrice,
-      images: data.images
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean),
-      categoryId: data.categoryId,
-      brandId: data.brandId || null,
-      isActive: data.isActive,
-      archived: data.archived,
-      featured: data.featured,
-      bestSeller: data.bestSeller,
-    });
-    setOpen(false);
+    try {
+      await updateProductAndInvalidate(product.id, {
+        name: data.name,
+        slug: data.slug,
+        description: data.description
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean),
+        madeIn: data.madeIn || null,
+        images: data.images
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean),
+        categoryId: data.categoryId,
+        brandId: data.brandId || null,
+        isActive: data.isActive,
+        archived: data.archived,
+        featured: data.featured,
+        bestSeller: data.bestSeller,
+      });
+      toast.success("Product updated", {
+        description: `${data.name} has been saved.`,
+      });
+      setOpen(false);
+    } catch (err) {
+      toast.error("Failed to update product", {
+        description: err instanceof Error ? err.message : "Something went wrong",
+      });
+    }
   };
 
   return (
@@ -118,16 +126,6 @@ export function EditProductDialog({ product, categories, brands }: Props) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Base Price (EGP)</Label>
-              <Input
-                type="number"
-                {...register("basePrice", { valueAsNumber: true })}
-              />
-              {errors.basePrice && (
-                <p className="text-xs text-destructive">{errors.basePrice.message}</p>
-              )}
-            </div>
             <div className="space-y-1.5">
               <Label>Made In</Label>
               <Input
