@@ -39,9 +39,21 @@ export default async function AdminProductDetailPage({ params }: Props) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">
-              {product.name}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold text-foreground">
+                {product.name}
+              </h1>
+              <Badge
+                variant={product.isActive ? "default" : "destructive"}
+                className={`shrink-0 text-[10px] ${
+                  product.isActive
+                    ? "bg-emerald-600 hover:bg-emerald-600"
+                    : ""
+                }`}
+              >
+                {product.isActive ? "Active" : "Inactive"}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">/{product.slug}</p>
           </div>
         </div>

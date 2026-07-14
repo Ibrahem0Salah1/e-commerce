@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const ADMIN_LOGIN_PATH = "/admin/login";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isAdminLogin = pathname === ADMIN_LOGIN_PATH;
   const sessionToken = getSessionCookie(request.headers);

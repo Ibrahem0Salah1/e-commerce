@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils/cn";
 
 export function TruncatedDescription({
   paragraphs,
-  clampLines = 3,
+  // clampLines = 3,
 }: {
   paragraphs: string[];
   clampLines?: number;
@@ -21,7 +21,7 @@ export function TruncatedDescription({
       <div
         className={cn(
           "space-y-2 text-sm leading-relaxed text-muted-foreground",
-          !expanded && needsTruncation && "line-clamp-[8]"
+          !expanded && needsTruncation && "line-clamp-8"
         )}
       >
         {paragraphs.map((p, i) => (

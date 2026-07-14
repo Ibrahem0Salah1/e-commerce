@@ -10,6 +10,8 @@ import {
   Building2,
   ShoppingBag,
   Users,
+  Truck,
+  Receipt,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -20,6 +22,8 @@ import { useSession } from "@/lib/auth/client";
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/restock", label: "Restock", icon: Truck },
+  { href: "/admin/invoices", label: "Invoices", icon: Receipt },
   { href: "/admin/categories", label: "Categories", icon: ListTree },
   { href: "/admin/brands", label: "Brands", icon: Building2 },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },

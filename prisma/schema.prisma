@@ -192,26 +192,63 @@ model Product {
 // Single-option products get one variant named "Default".
 // Examples: "Small", "Roth 0.022", "Shade A2", "Default"
 model Variant {
-  id                String      @id @default(cuid())
+  id                String         @id @default(cuid())
   productId         String
   name              String // "Small" / "Shade A2" / "Default"
-  sku               String?     @unique
-  price             Decimal     @db.Decimal(10, 2)
-  stock             Int         @default(0)
-  isLimitedQuantity Boolean     @default(false)
+  sku               String?        @unique
+  price             Decimal        @db.Decimal(10, 2)
+  stock             Int            @default(0)
+  isLimitedQuantity Boolean        @default(false)
   image             String? // optional variant-specific image
-  isActive          Boolean     @default(true)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  archived          Boolean     @default(false)
-  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  archived          Boolean        @default(false)
+  product           Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems         CartItem[]
   orderItems        OrderItem[]
+  costPrice         Decimal?       @db.Decimal(10, 2) // current cost — null until first restock
+  marginPercent     Decimal?       @db.Decimal(5, 2) // current markup % used to compute price
+  restocks          RestockEntry[]
 
   @@unique([productId, name]) // no duplicate variant names per product
   @@index([productId])
   @@index([isActive])
   @@map("variants")
+}
+
+// ─────────────────────────────────────────
+// RestockEntry[]
+// ─────────────────────────────────────────
+// Tracks restock events for a variant, including quantity added and cost price at the time
+model PurchaseInvoice {
+  id            String         @id @default(cuid())
+  supplierName  String?
+  invoiceNumber String?
+  supplierPhone String?
+  createdAt     DateTime       @default(now())
+  items         RestockEntry[]
+  totalCost     Decimal        @db.Decimal(10, 2) // sum of all items' costPrice * quantityAdded
+
+  @@index([createdAt]) // for filtering by date range in reports
+  @@map("purchase_invoices")
+}
+
+model RestockEntry {
+  id            String          @id @default(cuid())
+  invoiceId     String
+  invoice       PurchaseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  variantId     String
+  variant       Variant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  costPrice     Decimal         @db.Decimal(10, 2)
+  marginPercent Decimal         @db.Decimal(5, 2)
+  sellingPrice  Decimal         @db.Decimal(10, 2)
+  quantityAdded Int
+  createdAt     DateTime        @default(now())
+
+  @@index([variantId])
+  @@index([invoiceId])
+  @@map("restock_entries")
 }
 
 // ─────────────────────────────────────────
@@ -375,12 +412,12 @@ model OrderItem {
 
   // denormalized snapshots — frozen at purchase time
   // so renames/price changes never affect historical orders
-  productName String
-  variantName String
-  unitPrice   Decimal @db.Decimal(10, 2)
-  totalPrice  Decimal @db.Decimal(10, 2) // unitPrice × quantity
-
-  quantity Int
+  productName     String
+  variantName     String
+  unitPrice       Decimal  @db.Decimal(10, 2)
+  totalPrice      Decimal  @db.Decimal(10, 2) // unitPrice × quantity
+  costPriceAtSale Decimal? @db.Decimal(10, 2) // snapshot of variant.costPrice when this order was placed
+  quantity        Int
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   variant Variant @relation(fields: [variantId], references: [id])

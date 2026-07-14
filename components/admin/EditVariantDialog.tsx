@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,17 +56,26 @@ export function EditVariantDialog({ variant }: Props) {
   });
 
   const onSubmit = async (data: EditVariantForm) => {
-    await updateVariantAndInvalidate(variant.id, {
-      name: data.name,
-      sku: data.sku || null,
-      price: data.price,
-      stock: data.stock,
-      isLimitedQuantity: data.isLimitedQuantity,
-      image: data.image || null,
-      isActive: data.isActive,
-      archived: data.archived,
-    });
-    setOpen(false);
+    try {
+      await updateVariantAndInvalidate(variant.id, {
+        name: data.name,
+        sku: data.sku || null,
+        price: data.price,
+        stock: data.stock,
+        isLimitedQuantity: data.isLimitedQuantity,
+        image: data.image || null,
+        isActive: data.isActive,
+        archived: data.archived,
+      });
+      toast.success("Variant updated", {
+        description: `${data.name} has been saved.`,
+      });
+      setOpen(false);
+    } catch (err) {
+      toast.error("Failed to update variant", {
+        description: err instanceof Error ? err.message : "Something went wrong",
+      });
+    }
   };
 
   return (
