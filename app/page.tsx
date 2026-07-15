@@ -1,6 +1,7 @@
 // import Image from "next/image";
 // import { auth } from "@/lib/auth/server";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
+import { BestsellerProducts } from "@/components/home/BestsellerProducts";
 import Hero from "@/components/home/Hero";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -13,9 +14,10 @@ export default async function Home() {
         <Header />
         <Hero />
         <FeaturedProducts />
+        <BestsellerProducts />
         <TestimonialsSection />
+        <Footer />
       </main>
-      <Footer />
     </>
   );
 }

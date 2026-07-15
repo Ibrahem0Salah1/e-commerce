@@ -1,4 +1,4 @@
-import { getBrands, getCategories } from "@/lib/categories/queries";
+import { getBrands, getCategoriesWithFamilies } from "@/lib/categories/queries";
 import { ProductsListServer } from "@/components/shop/ProductsListServer";
 import { ShopBreadcrumbs } from "@/components/shop/Breadcrumbs";
 import { SearchInput } from "@/components/shop/SearchInput";
@@ -15,7 +15,7 @@ export default async function ShopPage({
   searchParams: Promise<SearchParams>;
 }) {
   const [categories, brands, filters] = await Promise.all([
-    getCategories(),
+    getCategoriesWithFamilies(),
     getBrands(),
     searchParamsCache.parse(searchParams),
   ]);

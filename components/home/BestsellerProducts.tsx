@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getFeaturedProducts } from "@/lib/products/queries";
+import { getBestsellerProducts } from "@/lib/products/queries";
 import { CardsSlider, type CardData } from "@/components/home/CardsSlider";
 
-export async function FeaturedProducts() {
-  const products = await getFeaturedProducts();
+export async function BestsellerProducts() {
+  const products = await getBestsellerProducts();
 
   if (products.length === 0) return null;
 
@@ -14,7 +14,7 @@ export async function FeaturedProducts() {
     category: p.category?.name ?? "",
     image: p.images[0] ?? "",
     slug: p.slug,
-    description: p.description[0] ?? "",
+    description: p.description[1] ?? "",
     brand: p.brand?.name ?? "MDS",
     price: p.basePrice,
     variantsCount: p.variants.length,
@@ -27,10 +27,10 @@ export async function FeaturedProducts() {
       <div className="mb-8 flex items-end justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Featured Products
+            Bestsellers
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Hand-picked essentials trusted by clinics nationwide
+            Our most popular supplies, chosen repeatedly by dental professionals
           </p>
         </div>
         <Button

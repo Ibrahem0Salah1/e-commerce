@@ -16,6 +16,10 @@ export const filtersParsers = {
     clearOnDefault: true,
     scroll: false,
   }),
+  family: parseAsString.withDefault("").withOptions({
+    clearOnDefault: true,
+    scroll: false,
+  }),
   brand: parseAsString.withDefault("").withOptions({
     clearOnDefault: true,
     scroll: false,

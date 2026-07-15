@@ -12,7 +12,14 @@ export const adminProductDetailSelect = {
   bestSeller: true,
   isActive: true,
   archived: true,
-  category: { select: { id: true, name: true, slug: true } },
+  family: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
+  },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
   variants: {
     orderBy: { price: "asc" as const },

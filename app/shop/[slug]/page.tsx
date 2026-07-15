@@ -55,7 +55,7 @@ export default async function ProductPage({
           Shop
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground">{product.category.name}</span>
+        <span className="text-foreground">{product.category?.name ?? ""}</span>
       </nav>
       <div className="grid gap-8 md:grid-cols-2 md:gap-10">
 
@@ -64,7 +64,7 @@ export default async function ProductPage({
         <div className="flex flex-col gap-5 lg:sticky lg:top-24 lg:self-start">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-              {product.category.name}
+              {product.category?.name ?? ""}
             </span>
             {product.brand && (
               <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">

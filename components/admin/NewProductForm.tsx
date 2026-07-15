@@ -18,8 +18,17 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
+type FamilyOption = { id: string; name: string; slug: string };
+
+type CategoryWithFamilies = {
+  id: string;
+  name: string;
+  slug: string;
+  families: FamilyOption[];
+};
+
 type Props = {
-  categories: { id: string; name: string; slug: string }[];
+  categories: CategoryWithFamilies[];
   brands: { id: string; name: string; slug: string }[];
 };
 
@@ -30,6 +39,8 @@ export function NewProductForm({ categories, brands }: Props) {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AddProductForm>({
     resolver: zodResolver(addProductFormSchema),
@@ -42,6 +53,7 @@ export function NewProductForm({ categories, brands }: Props) {
       stock: 0,
       images: "",
       categoryId: "",
+      familyId: "",
       brandId: "",
       isActive: true,
       archived: false,
@@ -49,6 +61,10 @@ export function NewProductForm({ categories, brands }: Props) {
       bestSeller: false,
     },
   });
+
+  const watchedCategoryId = watch("categoryId");
+  const selectedCategory = categories.find((c) => c.id === watchedCategoryId);
+  const families = selectedCategory?.families ?? [];
 
   const onSubmit: SubmitHandler<AddProductForm> = async (data) => {
     try {
@@ -67,6 +83,7 @@ export function NewProductForm({ categories, brands }: Props) {
           .map((l) => l.trim())
           .filter(Boolean),
         categoryId: data.categoryId,
+        familyId: data.familyId,
         brandId: data.brandId || null,
         isActive: data.isActive,
         archived: data.archived,
@@ -128,6 +145,20 @@ export function NewProductForm({ categories, brands }: Props) {
           </p>
         </div>
         <div className="space-y-1.5">
+          <Label>Stock</Label>
+          <Input
+            type="number"
+            step="1"
+            {...register("stock", { valueAsNumber: true })}
+          />
+          {errors.stock && (
+            <p className="text-xs text-destructive">{errors.stock.message}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            This becomes the Default variant&apos;s stock
+          </p>
+        </div>
+        <div className="space-y-1.5">
           <Label>Made In</Label>
           <Input {...register("madeIn")} placeholder="e.g. Germany" />
         </div>
@@ -149,7 +180,13 @@ export function NewProductForm({ categories, brands }: Props) {
             control={control}
             name="categoryId"
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  setValue("familyId", "");
+                }}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -167,6 +204,37 @@ export function NewProductForm({ categories, brands }: Props) {
             <p className="text-xs text-destructive">{errors.categoryId.message}</p>
           )}
         </div>
+        <div className="space-y-1.5">
+          <Label>Family</Label>
+          <Controller
+            control={control}
+            name="familyId"
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={families.length === 0}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select family" />
+                </SelectTrigger>
+                <SelectContent>
+                  {families.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.familyId && (
+            <p className="text-xs text-destructive">{errors.familyId.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Brand</Label>
           <Controller
