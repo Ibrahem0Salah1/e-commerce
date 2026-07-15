@@ -9,7 +9,14 @@ export const productListSelect = {
   images: true,
   featured: true,
   isActive: true,
-  category: { select: { id: true, name: true, slug: true } },
+  family: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
+  },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
   variants: {
     where: { isActive: true },
@@ -32,7 +39,14 @@ export const productDetailSelect = {
   basePrice: true,
   images: true,
   featured: true,
-  category: { select: { id: true, name: true, slug: true } },
+  family: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
+  },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
   variants: {
     where: { isActive: true },

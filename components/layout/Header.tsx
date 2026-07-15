@@ -7,11 +7,11 @@ import UserMenu from "./UserIcon";
 import { MobileMenu } from "./MobileMenu";
 import { SessionUser } from "@/lib/types";
 import { CartButton } from "./CartButton";
-import { getCategories, getBrands } from "@/lib/categories/queries";
+import { getCategoriesWithFamilies, getBrands } from "@/lib/categories/queries";
 export async function Header() {
     const [session, categories, brands] = await Promise.all([
         auth.api.getSession({ headers: await headers() }),
-        getCategories(),
+        getCategoriesWithFamilies(),
         getBrands(),
     ]);
 

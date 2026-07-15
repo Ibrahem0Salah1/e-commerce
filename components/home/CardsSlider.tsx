@@ -1,7 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Clock } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -11,91 +9,134 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Image from "next/image";
 
 export interface CardData {
   id: number;
   title: string;
-  description: string;
   category: string;
   image: string;
   slug: string;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  date: string;
-  readTime: string;
+  brand: string;
+  price: number;
+  variantsCount: number;
+  rating: number | null;
+  reviewCount: number;
+  description: string | null;
 }
 
 export function CardsSlider({ cards }: { cards: CardData[] }) {
   return (
-    <Carousel
-      opts={{ align: "start", dragFree: true }}
-      className="group/slider w-full"
-    >
-      <CarouselContent className="-ml-4 py-6 sm:-ml-6">
+    <Carousel opts={{ align: "start" }} className="w-full">
+      <CarouselContent className="-ml-4">
         {cards.map((card, i) => (
           <CarouselItem
             key={card.id}
-            className="basis-[75%] pl-4 sm:basis-[45%] sm:pl-6 lg:basis-[30%]"
+            className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
           >
             <CardItem card={card} priority={i < 2} />
           </CarouselItem>
         ))}
       </CarouselContent>
-
-      <CarouselPrevious className="left-2 hidden opacity-0 transition-opacity duration-200 group-hover/slider:opacity-100 lg:flex" />
-      <CarouselNext className="right-2 hidden opacity-0 transition-opacity duration-200 group-hover/slider:opacity-100 lg:flex" />
+      <CarouselPrevious />
+      <CarouselNext />
     </Carousel>
   );
 }
 
 function CardItem({ card, priority }: { card: CardData; priority?: boolean }) {
   return (
-    <Link href={`/shop/${card.slug}`} className="group block h-full [transform:translateZ(0)]">
-      <Card className="h-full overflow-hidden rounded-3xl border-border bg-card transition-[border-color,box-shadow] duration-300 hover:border-primary/50 hover:shadow-xl">
-        <div className="flex h-full flex-col">
-          <div className="relative h-48 shrink-0 overflow-hidden bg-secondary/40">
-            <Image
-              src={card.image || "/placeholder-product.png"}
-              alt={card.title}
-              fill
-              priority={priority}
-              loading={priority ? undefined : "lazy"}
-              className="object-cover transition-transform duration-500 will-change-transform group-hover:scale-105"
-              sizes="(max-width: 640px) 75vw, (max-width: 1024px) 45vw, 320px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-            <div className="absolute left-4 top-4">
-              <Badge variant="secondary" className="bg-card/90 px-3 py-1 text-xs font-medium backdrop-blur-md">
-                {card.category}
-              </Badge>
-            </div>
+    <Link href={`shop/${card.slug}`} className="block h-full group">
+      {/*
+        The whole card is a vertical flex column with a fixed height.
+        Each section below gets a fixed shape so items in the SAME row
+        across different cards line up, regardless of content length:
+
+        - image:       fixed aspect ratio
+        - brand:       1 line, fixed height
+        - title:       2 lines, fixed height (clamped)
+        - description: 2 lines, fixed height (clamped)
+        - rating:      1 line, fixed height
+        - footer:      pushed to the bottom via mt-auto
+      */}
+      <Card className="flex h-full flex-col overflow-hidden rounded-lg border border-border/50 bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
+        {/* Image */}
+        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden border-b border-border/30 bg-background p-3">
+          <Image
+            src={card.image}
+            alt={card.title}
+            width={400}
+            height={400}
+            loading={priority ? "eager" : "lazy"}
+            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+          />
+          {card.category && (
+            <Badge
+              variant="secondary"
+              className="absolute left-3 top-3 rounded-md px-2 py-1 text-[10px] font-medium"
+            >
+              {card.category}
+            </Badge>
+          )}
+        </div>
+
+        {/* Content — vertical flex, each row a fixed height so cards align */}
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          {/* Brand — 1 line */}
+          <div className="mb-1 flex h-5 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="line-clamp-1">{card.brand}</span>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col p-6">
-            <div className="flex-1 space-y-3">
-              <h3 className="line-clamp-2 text-xl font-semibold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
-                {card.title}
-              </h3>
-              <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-                {card.description}
-              </p>
+          {/* Title — always reserves 2 lines */}
+          <h3 className="line-clamp-2 min-h-11 text-[15px] font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
+            {card.title}
+          </h3>
+
+          {/* Description — always reserves 2 lines */}
+          <p className="line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+            {card.description ?? ""}
+          </p>
+
+          {/* Rating — 1 line */}
+          <div className="mt-1 flex h-5 items-center gap-1.5 text-sm">
+            {card.rating !== null ? (
+              <>
+                <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                <span className="font-medium text-foreground">
+                  {card.rating.toFixed(1)}
+                </span>
+                <span className="text-muted-foreground">
+                  ({card.reviewCount})
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">No reviews yet</span>
+            )}
+          </div>
+
+          {/* Footer — pushed to bottom with mt-auto so all footers align */}
+          <div className="mt-auto flex items-end justify-between gap-2 border-t border-border/40 pt-4">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Price
+              </span>
+              <span className="text-lg font-bold text-primary">
+                EGP{" "}
+                {card.price.toLocaleString("en-EG", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
             </div>
 
-            <div className="mt-auto flex shrink-0 items-center justify-between border-t border-border pt-4">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8 border border-border">
-                  <AvatarImage src={card.author.avatar} alt={card.author.name} />
-                  <AvatarFallback>{card.author.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-foreground">{card.author.name}</span>
-                </div>
-              </div>
-              <div className="bg-secondary/60   rounded-full px-2 py-1 text-xs font-medium text-muted-foreground">
-                <p className="w-full">{card.readTime}</p>
-              </div>
+            {/* Reserve space even when there are no variants, so the
+                price row keeps identical height across cards. */}
+            <div className="flex h-6 items-center">
+              {card.variantsCount > 1 && (
+                <Badge
+                  variant="secondary"
+                  className="rounded-md px-2 py-1 text-[11px] font-medium"
+                >{card.variantsCount} Options</Badge>
+              )}
             </div>
           </div>
         </div>

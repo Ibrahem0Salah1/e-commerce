@@ -24,7 +24,9 @@ const mockProduct: ProductListItem = {
     basePrice: 220,
     images: ["/gloves.jpg"],
     featured: false,
+    isActive: true,
     category: { id: "cat-1", name: "Disposables", slug: "disposables" },
+    family: { id: "fam-1", name: "Gloves", slug: "gloves" },
     brand: null,
     variants: [
         { id: "var-1", name: "Small", price: 220, stock: 50 },

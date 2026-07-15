@@ -17,6 +17,27 @@ export const getCategories = unstable_cache(
   { revalidate: 3600 },
 );
 
+export const getCategoriesWithFamilies = unstable_cache(
+  async () => {
+    return prisma.category.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        families: {
+          where: { isActive: true },
+          select: { id: true, name: true, slug: true },
+          orderBy: { name: "asc" },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
+  },
+  ["categories-with-families-nav"],
+  { revalidate: 3600 },
+);
+
 export const getBrands = unstable_cache(
   async () => {
     return prisma.brand.findMany({

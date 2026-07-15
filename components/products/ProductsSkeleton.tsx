@@ -2,7 +2,7 @@ export function ProductsSkeleton() {
     return (
         <div className="relative space-y-4">
             <div className="h-4 w-32 rounded bg-muted" />
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 12 }).map((_, i) => (
                     <div
                         key={i}

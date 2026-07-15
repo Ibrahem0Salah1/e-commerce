@@ -20,7 +20,7 @@ export function ShopBreadcrumbs({
   categories,
   brands,
 }: {
-  categories: { slug: string; name: string }[];
+  categories: { slug: string; name: string; families?: { slug: string; name: string }[] }[];
   brands: { slug: string; name: string }[];
 }) {
   const [filters] = useProductFilters();
@@ -35,6 +35,15 @@ export function ShopBreadcrumbs({
       label: category?.name ?? filters.category,
       href: `/shop?${params.toString()}`,
     });
+
+    if (filters.family && category?.families) {
+      const family = category.families.find((f) => f.slug === filters.family);
+      params.set("family", filters.family);
+      crumbs.push({
+        label: family?.name ?? filters.family,
+        href: `/shop?${params.toString()}`,
+      });
+    }
   }
 
   if (filters.brand) {

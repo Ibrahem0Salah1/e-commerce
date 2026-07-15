@@ -20,9 +20,18 @@ import { updateProductAndInvalidate } from "@/lib/admin/actions";
 import { editProductSchema, type EditProductForm } from "@/lib/validations";
 import type { AdminProductDetail } from "@/lib/types";
 
+type FamilyOption = { id: string; name: string; slug: string };
+
+type CategoryWithFamilies = {
+  id: string;
+  name: string;
+  slug: string;
+  families: FamilyOption[];
+};
+
 type Props = {
   product: AdminProductDetail;
-  categories: { id: string; name: string; slug: string }[];
+  categories: CategoryWithFamilies[];
   brands: { id: string; name: string; slug: string }[];
 };
 
@@ -33,6 +42,8 @@ export function EditProductDialog({ product, categories, brands }: Props) {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<EditProductForm>({
     resolver: zodResolver(editProductSchema),
@@ -42,7 +53,8 @@ export function EditProductDialog({ product, categories, brands }: Props) {
       description: (product.description ?? []).join("\n"),
       madeIn: product.madeIn ?? "",
       images: product.images.join("\n"),
-      categoryId: product.category.id,
+      categoryId: product.category?.id ?? "",
+      familyId: product.family?.id ?? "",
       brandId: product.brand?.id ?? "",
       isActive: product.isActive,
       archived: product.archived,
@@ -50,6 +62,10 @@ export function EditProductDialog({ product, categories, brands }: Props) {
       bestSeller: product.bestSeller,
     },
   });
+
+  const watchedCategoryId = watch("categoryId");
+  const selectedCategory = categories.find((c) => c.id === watchedCategoryId);
+  const families = selectedCategory?.families ?? [];
 
   const onSubmit: SubmitHandler<EditProductForm> = async (data) => {
     try {
@@ -66,6 +82,7 @@ export function EditProductDialog({ product, categories, brands }: Props) {
           .map((l) => l.trim())
           .filter(Boolean),
         categoryId: data.categoryId,
+        familyId: data.familyId,
         brandId: data.brandId || null,
         isActive: data.isActive,
         archived: data.archived,
@@ -151,7 +168,13 @@ export function EditProductDialog({ product, categories, brands }: Props) {
                 control={control}
                 name="categoryId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setValue("familyId", "");
+                    }}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -169,6 +192,37 @@ export function EditProductDialog({ product, categories, brands }: Props) {
                 <p className="text-xs text-destructive">{errors.categoryId.message}</p>
               )}
             </div>
+            <div className="space-y-1.5">
+              <Label>Family</Label>
+              <Controller
+                control={control}
+                name="familyId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={families.length === 0}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select family" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {families.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.familyId && (
+                <p className="text-xs text-destructive">{errors.familyId.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Brand</Label>
               <Controller

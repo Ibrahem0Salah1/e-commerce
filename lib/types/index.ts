@@ -20,8 +20,10 @@ export type SessionUser = {
 
 export type ProductListItem = Omit<
   ProductListRaw,
-  "basePrice" | "description" | "variants" | "_count" | "reviews"
+  "basePrice" | "description" | "variants" | "_count" | "reviews" | "family"
 > & {
+  category: { id: string; name: string; slug: string } | null;
+  family: { id: string; name: string; slug: string } | null;
   basePrice: number;
   description: string[];
   variants: { id: string; name: string; price: number; stock: number }[];
@@ -43,8 +45,10 @@ export type CartItem = {
 
 export type ProductDetail = Omit<
   ProductDetailRaw,
-  "basePrice" | "variants" | "specGroups" | "_count"
+  "basePrice" | "variants" | "specGroups" | "_count" | "family"
 > & {
+  category: { id: string; name: string; slug: string } | null;
+  family: { id: string; name: string; slug: string } | null;
   basePrice: number;
   variants: {
     id: string;
@@ -66,8 +70,10 @@ export type ProductDetail = Omit<
 
 export type AdminProductDetail = Omit<
   AdminProductDetailRaw,
-  "basePrice" | "variants"
+  "basePrice" | "variants" | "family"
 > & {
+  category: { id: string; name: string; slug: string } | null;
+  family: { id: string; name: string; slug: string } | null;
   basePrice: number;
   variants: {
     id: string;

@@ -69,6 +69,11 @@ export function ProductList({ products, onDelete, onToggleActive }: ProductListP
                         {product.category.name}
                       </Badge>
                     )}
+                    {product.family && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {product.family.name}
+                      </Badge>
+                    )}
                     {product.brand && (
                       <span className="text-[10px] text-muted-foreground">
                         {product.brand.name}

@@ -12,7 +12,7 @@ export async function getAdminAllProducts(): Promise<ProductListItem[]> {
     select: productListSelect,
   });
 
-  return products.map(({ reviews, _count, variants, basePrice, description, ...rest }) => {
+  return products.map(({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
     const avgRating =
       reviews.length > 0
         ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -20,6 +20,8 @@ export async function getAdminAllProducts(): Promise<ProductListItem[]> {
 
     return {
       ...rest,
+      category: family?.category ?? null,
+      family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
       description: description ?? [],
       basePrice: Number(basePrice),
       variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
@@ -42,6 +44,8 @@ export async function getAdminProductBySlug(
 
   return {
     ...product,
+    category: product.family?.category ?? null,
+    family: product.family ? { id: product.family.id, name: product.family.name, slug: product.family.slug } : null,
     basePrice: Number(product.basePrice),
     variants: product.variants.map((v) => ({ ...v, price: Number(v.price) })),
   };

@@ -12,13 +12,14 @@ import { productListSelect, productDetailSelect } from "@/lib/products/selects";
 
 async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
   console.log(
-    `[CACHE MISS] queryProducts - page ${filters.page}, category: ${filters.category || "all"}, brand: ${filters.brand || "all"}, q: ${filters.q || ""}`,
+    `[CACHE MISS] queryProducts - page ${filters.page}, category: ${filters.category || "all"}, family: ${filters.family || "all"}, brand: ${filters.brand || "all"}, q: ${filters.q || ""}`,
   );
 
   const where: Prisma.ProductWhereInput = {
     isActive: true,
     archived: false,
-    ...(filters.category && { category: { slug: filters.category } }),
+    ...(filters.family && { family: { slug: filters.family } }),
+    ...(filters.category && !filters.family && { family: { category: { slug: filters.category } } }),
     ...(filters.brand && { brand: { slug: filters.brand } }),
     ...(filters.featured && { featured: true }),
     ...(filters.q && { name: { contains: filters.q, mode: "insensitive" } }),
@@ -45,7 +46,7 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
   ]);
 
   const data = products.map(
-    ({ reviews, _count, variants, basePrice, description, ...rest }) => {
+    ({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
       const avgRating =
         reviews.length > 0
           ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -53,6 +54,8 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
 
       return {
         ...rest,
+        category: family?.category ?? null,
+        family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
         description: description ?? [],
         basePrice: Number(basePrice),
         variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
@@ -89,6 +92,7 @@ export const getFeaturedProducts = unstable_cache(
     const data = await queryProducts({
       q: "",
       category: "",
+      family: "",
       brand: "",
       featured: true,
       sort: "name",
@@ -121,8 +125,12 @@ export const getProductBySlug = unstable_cache(
           ) / 10
         : null;
 
+    const { family, ...productData } = product;
+
     return {
-      ...product,
+      ...productData,
+      category: family?.category ?? null,
+      family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
       basePrice: Number(product.basePrice),
       variants: product.variants.map((v) => ({
         ...v,
@@ -148,7 +156,7 @@ export const getAllProducts = unstable_cache(
     });
 
     return products.map(
-      ({ reviews, _count, variants, basePrice, description, ...rest }) => {
+      ({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
         const avgRating =
           reviews.length > 0
             ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -156,6 +164,8 @@ export const getAllProducts = unstable_cache(
 
         return {
           ...rest,
+          category: family?.category ?? null,
+          family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
           description: description ?? [],
           basePrice: Number(basePrice),
           variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
@@ -169,3 +179,40 @@ export const getAllProducts = unstable_cache(
   ["products-all"],
   { revalidate: 3600, tags: ["products"] },
 );
+
+export const getBestsellerProducts = unstable_cache(
+  async (): Promise<ProductListItem[]> => {
+    console.log("[CACHE MISS] getBestsellerProducts - hitting DB");
+
+    const products = await prisma.product.findMany({
+      where: { isActive: true, archived: false, bestSeller: true },
+      orderBy: { name: "asc" },
+      take: 8,
+      select: productListSelect,
+    });
+
+    return products.map(
+      ({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
+        const avgRating =
+          reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            : null;
+
+        return {
+          ...rest,
+          category: family?.category ?? null,
+          family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
+          description: description ?? [],
+          basePrice: Number(basePrice),
+          variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
+          variantCount: _count.variants,
+          reviewCount: _count.reviews,
+          rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+        };
+      },
+    );
+  },
+  ["products-bestseller"],
+  { revalidate: 3600, tags: ["products"] },
+);
+

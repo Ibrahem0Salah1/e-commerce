@@ -125,16 +125,17 @@ model Verification {
 // ─────────────────────────────────────────
 
 model Category {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String           @unique
   description String?
   image       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  products Product[]
+  products  Product[]
+  families  ProductFamily[]
 
   @@map("categories")
 }
@@ -154,6 +155,20 @@ model Brand {
   @@map("brands")
 }
 
+model ProductFamily {
+  id         String    @id @default(cuid())
+  name       String
+  slug       String    @unique
+  isActive   Boolean   @default(true)
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  products   Product[]
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@map("product_families")
+}
+
 model Product {
   id          String               @id @default(cuid())
   name        String
@@ -165,11 +180,13 @@ model Product {
   basePrice   Decimal              @db.Decimal(10, 2)
   images      String[]
   categoryId  String
+  familyId    String?              // nullable — tightened in Phase 3
   isActive    Boolean              @default(true)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   archived    Boolean              @default(false)
   category    Category             @relation(fields: [categoryId], references: [id])
+  family      ProductFamily?       @relation(fields: [familyId], references: [id])
   variants    Variant[]
   specGroups  SpecificationGroup[]
   reviews     Review[]
@@ -179,6 +196,7 @@ model Product {
   bestSeller  Boolean              @default(false)
 
   @@index([categoryId])
+  @@index([familyId])
   @@index([brandId])
   @@index([isActive])
   @@map("products")

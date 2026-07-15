@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,12 @@ type FilterOption = {
   slug: string;
 };
 
+type FamilyOption = FilterOption;
+
+type CategoryWithFamilies = FilterOption & {
+  families: FamilyOption[];
+};
+
 type BrandOption = FilterOption & {
   logo: string | null;
 };
@@ -34,7 +40,7 @@ export function ShopFiltersClient({
   categories,
   brands,
 }: {
-  categories: FilterOption[];
+  categories: CategoryWithFamilies[];
   brands: BrandOption[];
 }) {
   const [filters, setFilters] = useProductFilters();
@@ -49,6 +55,7 @@ export function ShopFiltersClient({
   const clearFilters = () => {
     void setFilters({
       category: "",
+      family: "",
       brand: "",
       q: "",
       featured: false,
@@ -58,13 +65,43 @@ export function ShopFiltersClient({
     });
   };
 
+  const selectedCategory = categories.find(
+    (c) => c.slug === filters.category,
+  );
+  const families = selectedCategory?.families ?? [];
+  const selectedFamily = families.find((f) => f.slug === filters.family);
+  const selectedBrand = brands.find((b) => b.slug === filters.brand);
+
+  const chips = [
+    selectedCategory && {
+      key: "category",
+      label: selectedCategory.name,
+      clear: () => updateFilters({ category: "", family: "" }),
+    },
+    selectedFamily && {
+      key: "family",
+      label: selectedFamily.name,
+      clear: () => updateFilters({ family: "" }),
+    },
+    selectedBrand && {
+      key: "brand",
+      label: selectedBrand.name,
+      clear: () => updateFilters({ brand: "" }),
+    },
+    filters.featured && {
+      key: "featured",
+      label: "Featured",
+      clear: () => updateFilters({ featured: false }),
+    },
+  ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
+
   return (
-    <aside className="rounded-lg border border-border bg-card p-4 shadow-sm lg:sticky lg:top-24">
+    <aside className="rounded-[4px] border bg-card p-5 shadow-xs lg:sticky lg:top-24">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Filters</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Refine dental supplies by catalog, brand, and price order.
+          <h2 className="text-sm font-bold text-foreground">Filters</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground/75">
+            Refine by catalog, brand, and price.
           </p>
         </div>
         <Button
@@ -73,20 +110,42 @@ export function ShopFiltersClient({
           size="icon-sm"
           aria-label="Reset filters"
           onClick={clearFilters}
+          className="rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-secondary/60"
         >
-          <RotateCcw />
+          <RotateCcw className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      <div className="space-y-2">
-        <Label>Category</Label>
+      {chips.length > 0 && (
+        <div className="mt-3.5 flex flex-wrap gap-1.5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          {chips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.clear}
+              className="group flex items-center gap-1 rounded-full border border-border/20 bg-secondary/40 py-1 pl-2.5 pr-1.5 text-xs font-medium text-foreground/80 transition-colors hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
+            >
+              {chip.label}
+              <X className="h-3 w-3 text-muted-foreground/60 transition-colors group-hover:text-destructive" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      <Separator className="my-3.5 bg-border/15" />
+
+      <div className="space-y-1.5">
+        <Label className="text-sm  text-muted-foreground">Category</Label>
         <Select
           value={filters.category || "all"}
           onValueChange={(value) =>
-            updateFilters({ category: value === "all" ? "" : value })
+            updateFilters({
+              category: value === "all" ? "" : value,
+              family: "",
+            })
           }
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full rounded-[4px] border-border/60 hover:border-border/30 transition-colors">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
@@ -100,20 +159,44 @@ export function ShopFiltersClient({
         </Select>
       </div>
 
-      <Separator className="my-4" />
+      {families.length > 0 && (
+        <div className="mt-4 space-y-1.5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          <Label className="text-sm text-muted-foreground">Family</Label>
+          <Select
+            value={filters.family || "all"}
+            onValueChange={(value) =>
+              updateFilters({ family: value === "all" ? "" : value })
+            }
+          >
+            <SelectTrigger className="w-full rounded-[4px] border-border/60 hover:border-border/30 transition-colors">
+              <SelectValue placeholder="All families" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All families</SelectItem>
+              {families.map((family) => (
+                <SelectItem key={family.id} value={family.slug}>
+                  {family.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
-      <div className="space-y-2">
-        <Label>Brand</Label>
+      <Separator className="my-4 bg-border/15" />
+
+      <div className="space-y-1.5">
+        <Label className="text-sm text-muted-foreground">Brand</Label>
         <Select
           value={filters.brand || "all"}
           onValueChange={(value) =>
             updateFilters({ brand: value === "all" ? "" : value })
           }
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full rounded-[4px] border-border/60  hover:border-border/30 transition-colors">
             <SelectValue placeholder="All brands" />
           </SelectTrigger>
-          <SelectContent className="max-h-72 overflow-y-auto">
+          <SelectContent className="max-h-72 overflow-y-auto ">
             <SelectItem value="all">All brands</SelectItem>
             {brands.map((brand) => (
               <SelectItem key={brand.id} value={brand.slug}>
@@ -124,25 +207,26 @@ export function ShopFiltersClient({
         </Select>
       </div>
 
-      <Separator className="my-4" />
+      <Separator className="my-4 bg-border/15" />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <Checkbox
           id="featured"
           checked={filters.featured}
           onCheckedChange={(checked) =>
             updateFilters({ featured: checked === true })
           }
+          className="rounded-[4px] border-border"
         />
-        <Label htmlFor="featured" className="font-normal">
+        <Label htmlFor="featured" className="text-sm font-normal text-foreground/90">
           Featured products only
         </Label>
       </div>
 
-      <Separator className="my-4" />
+      <Separator className="my-4 bg-border/15" />
 
-      <div className="space-y-2">
-        <Label>Sort by</Label>
+      <div className="space-y-1.5">
+        <Label className="text-sm text-muted-foreground">Sort by</Label>
         <Select
           value={filters.sort}
           onValueChange={(value) =>
@@ -151,7 +235,7 @@ export function ShopFiltersClient({
             })
           }
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full rounded-[4px] border-border/60  hover:border-border/30 transition-colors">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

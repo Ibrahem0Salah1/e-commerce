@@ -46,6 +46,7 @@ export async function addProductAndInvalidate(raw: unknown) {
         featured: data.featured,
         bestSeller: data.bestSeller,
         category: { connect: { id: data.categoryId } },
+        ...(data.familyId ? { family: { connect: { id: data.familyId } } } : {}),
         ...(data.brandId ? { brand: { connect: { id: data.brandId } } } : {}),
       },
     });
@@ -82,6 +83,7 @@ export async function updateProductAndInvalidate(productId: string, raw: unknown
       madeIn: data.madeIn,
       images: data.images,
       categoryId: data.categoryId,
+      familyId: data.familyId,
       brandId: data.brandId,
       isActive: data.isActive,
       archived: data.archived,
