@@ -2,25 +2,8 @@
 
 import { revalidateTag } from "next/cache";
 import prisma from "@/lib/config/prisma";
-import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/authz";
 import { createPurchaseInvoiceSchema } from "@/lib/validations";
-
-async function recomputeBasePrice(
-  tx: Prisma.TransactionClient,
-  productId: string,
-) {
-  const cheapest = await tx.variant.aggregate({
-    where: { productId, isActive: true, archived: false },
-    _min: { price: true },
-  });
-  if (cheapest._min.price !== null) {
-    await tx.product.update({
-      where: { id: productId },
-      data: { basePrice: cheapest._min.price },
-    });
-  }
-}
 
 export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
   await requireAdmin();
@@ -42,44 +25,36 @@ export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
       },
     });
 
-    const touchedProductIds = new Set<string>();
-
     for (const line of data.lines) {
-      const sellingPrice = line.costPrice * (1 + line.marginPercent / 100);
+      const sellingPrice = Number(
+        (line.costPrice * (1 + line.marginPercent / 100)).toFixed(2),
+      );
 
-      const variant = await tx.variant.update({
-        where: { id: line.variantId },
+      await tx.product.update({
+        where: { id: line.productId },
         data: {
-          costPrice: line.costPrice,
-          marginPercent: line.marginPercent,
-          price: sellingPrice,
+          costPrice: line.costPrice,         // ← live cost
+          marginPercent: line.marginPercent, // ← live margin
+          price: sellingPrice,               // ← live selling price
           stock: { increment: line.quantityAdded },
         },
-        select: { productId: true },
       });
 
       await tx.restockEntry.create({
         data: {
           invoiceId: invoice.id,
-          variantId: line.variantId,
+          productId: line.productId,
           costPrice: line.costPrice,
           marginPercent: line.marginPercent,
           sellingPrice,
           quantityAdded: line.quantityAdded,
         },
       });
-
-      touchedProductIds.add(variant.productId);
-    }
-
-    for (const productId of touchedProductIds) {
-      await recomputeBasePrice(tx, productId);
     }
 
     return invoice;
   });
 
-  revalidateTag("products", "default");
-
+  revalidateTag("products", "max");
   return result;
 }

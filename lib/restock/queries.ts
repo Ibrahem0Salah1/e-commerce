@@ -1,9 +1,18 @@
 import "server-only";
-
 import prisma from "@/lib/config/prisma";
 
-export async function getPurchaseInvoices() {
-  return prisma.purchaseInvoice.findMany({
+export type PurchaseInvoiceListItem = {
+  id: string;
+  supplierName: string | null;
+  invoiceNumber: string | null;
+  supplierPhone: string | null;
+  totalCost: number;
+  createdAt: string;
+  _count: { items: number };
+};
+
+export async function getPurchaseInvoices(): Promise<PurchaseInvoiceListItem[]> {
+  const invoices = await prisma.purchaseInvoice.findMany({
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -15,19 +24,25 @@ export async function getPurchaseInvoices() {
       _count: { select: { items: true } },
     },
   });
+
+  return invoices.map((inv) => ({
+    ...inv,
+    totalCost: Number(inv.totalCost),
+    createdAt: inv.createdAt.toISOString(),
+  }));
 }
 
 export async function getPurchaseInvoiceById(id: string) {
-  return prisma.purchaseInvoice.findUnique({
+  const invoice = await prisma.purchaseInvoice.findUnique({
     where: { id },
     include: {
       items: {
         include: {
-          variant: {
-            include: { product: { select: { name: true, slug: true } } },
-          },
+          product: true,
         },
       },
     },
   });
-}
+
+  return invoice;
+} 

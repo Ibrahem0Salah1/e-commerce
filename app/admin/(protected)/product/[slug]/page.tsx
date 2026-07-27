@@ -110,25 +110,39 @@ export default async function AdminProductDetailPage({ params }: Props) {
               <div>
                 <dt className="text-muted-foreground">Category</dt>
                 <dd className="font-medium">
-                  {product.category?.name ?? "—"}
+                  {product.category?.name ?? "\u2014"}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Family</dt>
                 <dd className="font-medium">
-                  {product.family?.name ?? "—"}
+                  {product.family?.name ?? "\u2014"}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Brand</dt>
                 <dd className="font-medium">
-                  {product.brand?.name ?? "—"}
+                  {product.brand?.name ?? "\u2014"}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Base Price</dt>
+                <dt className="text-muted-foreground">Price</dt>
                 <dd className="font-medium">
-                  {formatNumber(product.basePrice)} EGP
+                  {product.price != null
+                    ? `${formatNumber(product.price)} EGP`
+                    : "\u2014"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Stock</dt>
+                <dd className="font-medium">
+                  {product.stock != null ? product.stock : "\u2014"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">SKU</dt>
+                <dd className="font-medium font-mono text-xs">
+                  {product.sku ?? "\u2014"}
                 </dd>
               </div>
               <div>
@@ -185,58 +199,6 @@ export default async function AdminProductDetailPage({ params }: Props) {
               </div>
             </div>
           )}
-
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Variants ({product.variants.length})
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">Name</th>
-                    <th className="pb-2 pr-4 font-medium">SKU</th>
-                    <th className="pb-2 pr-4 font-medium">Price</th>
-                    <th className="pb-2 pr-4 font-medium">Stock</th>
-                    <th className="pb-2 font-medium">Active</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {product.variants.map((v) => (
-                    <tr
-                      key={v.id}
-                      className="border-b border-border/50 transition-colors hover:bg-secondary/40"
-                    >
-                      <td className="py-2 pr-4">
-                        <Link
-                          href={`/admin/product/${product.slug}/${v.id}`}
-                          className="font-medium text-foreground underline-offset-2 hover:underline"
-                        >
-                          {v.name}
-                        </Link>
-                      </td>
-                      <td className="py-2 pr-4 font-mono text-xs">
-                        {v.sku ?? "—"}
-                      </td>
-                      <td className="py-2 pr-4">
-                        {formatNumber(v.price)} EGP
-                      </td>
-                      <td className="py-2 pr-4">{v.stock}</td>
-                      <td className="py-2">
-                        {v.isActive ? (
-                          <Badge variant="default" className="bg-emerald-600">
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Inactive</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <div className="space-y-4">

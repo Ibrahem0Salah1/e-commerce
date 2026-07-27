@@ -4,13 +4,11 @@ import type { CartItem } from "@/lib/types";
 
 export const mockCartItems: CartItem[] = [
   {
-    variantId: "var-1",
     productId: "prod-1",
     slug: "latex-gloves",
     name: "Latex Gloves",
     price: 220,
     image: "/gloves.jpg",
-    variantName: "Medium",
     quantity: 2,
   },
 ];

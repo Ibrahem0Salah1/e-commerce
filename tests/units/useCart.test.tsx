@@ -3,8 +3,6 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCart } from "@/hooks/useCart";
 import type { CartItem } from "@/lib/types";
-import { http, HttpResponse } from "msw";
-import { server } from "@/tests/mocks/server";
 import type { ReactNode } from "react";
 
 const mockUseSession = vi.hoisted(() => vi.fn());
@@ -18,26 +16,39 @@ const guestAddItem = vi.hoisted(() => vi.fn());
 const guestRemoveItem = vi.hoisted(() => vi.fn());
 const guestUpdateQuantity = vi.hoisted(() => vi.fn());
 const guestClearCart = vi.hoisted(() => vi.fn());
+const guestSetState = vi.hoisted(() => vi.fn());
 const guestItems = vi.hoisted(() => ({ current: [] as CartItem[] }));
 
-vi.mock("@/lib/cart/store", () => ({
-  useGuestCart: () => ({
+vi.mock("@/lib/cart/store", () => {
+  const fn = () => ({
     items: guestItems.current,
     addItem: guestAddItem,
     removeItem: guestRemoveItem,
     updateQuantity: guestUpdateQuantity,
     clearCart: guestClearCart,
-  }),
+  });
+  (fn as any).setState = guestSetState;
+  return { useGuestCart: fn };
+});
+
+const mockGetCartAction = vi.hoisted(() => vi.fn());
+const mockAddToCartAction = vi.hoisted(() => vi.fn());
+const mockRemoveFromCartAction = vi.hoisted(() => vi.fn());
+const mockUpdateCartQuantityAction = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/cart/actions", () => ({
+  getCartAction: (...args: unknown[]) => mockGetCartAction(...args),
+  addToCartAction: (...args: unknown[]) => mockAddToCartAction(...args),
+  removeFromCartAction: (...args: unknown[]) => mockRemoveFromCartAction(...args),
+  updateCartQuantityAction: (...args: unknown[]) => mockUpdateCartQuantityAction(...args),
 }));
 
 const mockItem: CartItem = {
-  variantId: "var-1",
   productId: "prod-1",
   slug: "latex-gloves",
   name: "Latex Gloves",
   price: 220,
   image: "/gloves.jpg",
-  variantName: "Medium",
   quantity: 2,
 };
 
@@ -58,6 +69,19 @@ describe("useCart", () => {
     vi.clearAllMocks();
     guestItems.current = [];
     mockUseSession.mockReturnValue({ data: null, isPending: false });
+    mockGetCartAction.mockResolvedValue([mockItem]);
+    mockAddToCartAction.mockResolvedValue({
+      success: true,
+      toast: { type: "success", title: "Added to cart" },
+    });
+    mockRemoveFromCartAction.mockResolvedValue({
+      success: true,
+      toast: { type: "success", title: "Item removed" },
+    });
+    mockUpdateCartQuantityAction.mockResolvedValue({
+      success: true,
+      toast: { type: "success", title: "Quantity updated" },
+    });
   });
 
   describe("guest mode (not logged in)", () => {
@@ -76,13 +100,11 @@ describe("useCart", () => {
     it("addItem delegates to guestCart.addItem", () => {
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       const newItem = {
-        variantId: "v2",
         productId: "p2",
         slug: "s",
         name: "n",
         price: 100,
         image: "",
-        variantName: "S",
       };
       act(() => result.current.addItem(newItem, 3));
       expect(guestAddItem).toHaveBeenCalledWith(newItem, 3);
@@ -91,21 +113,21 @@ describe("useCart", () => {
     it("removeItem delegates to guestCart.removeItem", () => {
       guestItems.current = [mockItem];
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
-      act(() => result.current.removeItem("var-1"));
-      expect(guestRemoveItem).toHaveBeenCalledWith("var-1");
+      act(() => result.current.removeItem("prod-1"));
+      expect(guestRemoveItem).toHaveBeenCalledWith("prod-1");
     });
 
     it("updateQuantity delegates to guestCart.updateQuantity", () => {
       guestItems.current = [mockItem];
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
-      act(() => result.current.updateQuantity("var-1", 5));
-      expect(guestUpdateQuantity).toHaveBeenCalledWith("var-1", 5);
+      act(() => result.current.updateQuantity("prod-1", 5));
+      expect(guestUpdateQuantity).toHaveBeenCalledWith("prod-1", 5);
     });
 
     it("computes totals from guest items", () => {
       guestItems.current = [
         { ...mockItem, quantity: 2 },
-        { ...mockItem, variantId: "var-2", price: 100, quantity: 3 },
+        { ...mockItem, productId: "prod-2", price: 100, quantity: 3 },
       ];
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       expect(result.current.totalItems).toBe(5);
@@ -138,66 +160,58 @@ describe("useCart", () => {
       });
     });
 
-    it("fetches server items from API", async () => {
+    it("fetches server items via getCartAction", async () => {
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       await waitFor(() => {
         expect(result.current.items).toEqual([mockItem]);
       });
       expect(result.current.isLoggedIn).toBe(true);
+      expect(mockGetCartAction).toHaveBeenCalled();
     });
 
-    it("addItem calls POST /api/cart", async () => {
-      let capturedBody: unknown;
-      server.use(
-        http.post("/api/cart", async ({ request }) => {
-          capturedBody = await request.json();
-          return HttpResponse.json({ success: true });
-        }),
-      );
+    it("addItem calls addToCartAction with productId", async () => {
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
       act(() =>
         result.current.addItem({
-          variantId: "v99",
           productId: "p99",
           slug: "s",
           name: "n",
           price: 10,
           image: "",
-          variantName: "X",
         }),
       );
-      await waitFor(() => expect(capturedBody).toBeDefined());
-      expect(capturedBody).toEqual({ variantId: "v99", quantity: 1 });
+      await waitFor(() => expect(mockAddToCartAction).toHaveBeenCalled());
+      expect(mockAddToCartAction).toHaveBeenCalledWith("p99", 1);
     });
 
-    it("removeItem calls DELETE /api/cart", async () => {
-      let capturedUrl = "";
-      server.use(
-        http.delete("/api/cart", ({ request }) => {
-          capturedUrl = request.url;
-          return HttpResponse.json({ success: true });
-        }),
-      );
+    it("addItem with custom quantity", async () => {
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
-      act(() => result.current.removeItem("var-1"));
-      await waitFor(() => expect(capturedUrl).toContain("variantId=var-1"));
+      act(() =>
+        result.current.addItem({
+          productId: "p99",
+          slug: "s",
+          name: "n",
+          price: 10,
+          image: "",
+        }, 5),
+      );
+      await waitFor(() => expect(mockAddToCartAction).toHaveBeenCalledWith("p99", 5));
     });
 
-    it("updateQuantity calls PATCH /api/cart with correct payload", async () => {
-      let capturedBody: unknown;
-      server.use(
-        http.patch("/api/cart", async ({ request }) => {
-          capturedBody = await request.json();
-          return HttpResponse.json({ success: true });
-        }),
-      );
+    it("removeItem calls removeFromCartAction with productId", async () => {
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.isLoading).toBe(false));
-      act(() => result.current.updateQuantity("var-1", 5));
-      await waitFor(() => expect(capturedBody).toBeDefined());
-      expect(capturedBody).toEqual({ variantId: "var-1", quantity: 5 });
+      act(() => result.current.removeItem("prod-1"));
+      await waitFor(() => expect(mockRemoveFromCartAction).toHaveBeenCalledWith("prod-1"));
+    });
+
+    it("updateQuantity calls updateCartQuantityAction", async () => {
+      const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      act(() => result.current.updateQuantity("prod-1", 5));
+      await waitFor(() => expect(mockUpdateCartQuantityAction).toHaveBeenCalledWith("prod-1", 5));
     });
 
     it("isLoading is true during initial fetch", () => {
@@ -209,8 +223,9 @@ describe("useCart", () => {
       guestItems.current = [mockItem];
       const { result } = renderHook(() => useCart(), { wrapper: createWrapper() });
       await waitFor(() => {
-        expect(guestClearCart).toHaveBeenCalled();
+        expect(mockAddToCartAction).toHaveBeenCalledWith("prod-1", 2);
       });
+      expect(guestSetState).toHaveBeenCalledWith({ items: [] });
     });
   });
 });

@@ -7,7 +7,7 @@ import { NewProductForm } from "@/components/admin/NewProductForm";
 import { AdminRules } from "@/components/admin/AdminRules";
 
 export default async function NewProductPage() {
-  const [categories, brands] = await Promise.all([
+  const [categories, brands, attributeTypes] = await Promise.all([
     prisma.category.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -25,6 +25,19 @@ export default async function NewProductPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true, slug: true },
     }),
+    prisma.attributeType.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        displayOrder: true,
+        values: {
+          orderBy: { value: "asc" },
+          select: { id: true, value: true, slug: true, },
+        },
+      },
+    }),
   ]);
 
   return (
@@ -38,14 +51,18 @@ export default async function NewProductPage() {
         <div>
           <h1 className="text-2xl font-semibold">Add New Product</h1>
           <p className="text-sm text-muted-foreground">
-            Create a new product with a default variant
+            Create a new product with price and stock
           </p>
         </div>
       </div>
 
       <AdminRules variant="addProduct" />
 
-      <NewProductForm categories={categories} brands={brands} />
+      <NewProductForm
+        categories={categories}
+        brands={brands}
+        attributeTypes={attributeTypes}
+      />
     </section>
   );
 }

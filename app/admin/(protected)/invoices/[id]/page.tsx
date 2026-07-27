@@ -75,7 +75,6 @@ export default async function InvoiceDetailPage({
                 <thead>
                   <tr className="border-b border-border text-left text-muted-foreground">
                     <th className="pb-2 pr-4 font-medium">Product</th>
-                    <th className="pb-2 pr-4 font-medium">Variant</th>
                     <th className="pb-2 pr-4 font-medium">Cost</th>
                     <th className="pb-2 pr-4 font-medium">Margin</th>
                     <th className="pb-2 pr-4 font-medium">Selling</th>
@@ -93,13 +92,12 @@ export default async function InvoiceDetailPage({
                       >
                         <td className="py-2 pr-4">
                           <Link
-                            href={`/admin/product/${item.variant.product.slug}`}
+                            href={`/admin/product/${item.product.slug}`}
                             className="font-medium text-foreground underline-offset-2 hover:underline"
                           >
-                            {item.variant.product.name}
+                            {item.product.name}
                           </Link>
                         </td>
-                        <td className="py-2 pr-4">{item.variant.name}</td>
                         <td className="py-2 pr-4">
                           {formatNumber(Number(item.costPrice))} EGP
                         </td>

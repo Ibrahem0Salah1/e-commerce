@@ -5,7 +5,9 @@ export const productListSelect = {
   name: true,
   slug: true,
   description: true,
-  basePrice: true,
+  price: true,
+  stock: true,
+  sku: true,
   images: true,
   featured: true,
   isActive: true,
@@ -18,13 +20,8 @@ export const productListSelect = {
     },
   },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
-  variants: {
-    where: { isActive: true },
-    orderBy: { price: "asc" as const },
-    select: { id: true, name: true, price: true, stock: true },
-  },
   reviews: { select: { rating: true } },
-  _count: { select: { reviews: true, variants: true } },
+  _count: { select: { reviews: true } },
 } satisfies Prisma.ProductSelect;
 
 export type ProductListRaw = Prisma.ProductGetPayload<{
@@ -36,7 +33,9 @@ export const productDetailSelect = {
   name: true,
   slug: true,
   description: true,
-  basePrice: true,
+  price: true,
+  stock: true,
+  sku: true,
   images: true,
   featured: true,
   family: {
@@ -48,18 +47,10 @@ export const productDetailSelect = {
     },
   },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
-  variants: {
-    where: { isActive: true },
-    orderBy: { price: "asc" as const },
+  attributeValues: {
     select: {
-      id: true,
-      name: true,
-      sku: true,
-      price: true,
-      stock: true,
-      image: true,
-      isActive: true,
-      archived: true,
+      attributeType: { select: { name: true, slug: true } },
+      attributeValue: { select: { value: true, slug: true } },
     },
   },
   specGroups: {

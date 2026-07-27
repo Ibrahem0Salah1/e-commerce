@@ -5,8 +5,7 @@ export type SignUpFormFields = z.infer<typeof signUpSchema>;
 export type SignInFormFields = z.infer<typeof signInSchema>;
 export type FiltersFormFields = z.infer<typeof filtersSchema>;
 export type CheckoutFormFields = z.infer<typeof checkoutSchema>;
-export type EditProductForm = z.infer<typeof editProductSchema>;
-export type EditVariantForm = z.infer<typeof editVariantSchema>;
+export type EditProductForm = z.infer<typeof editProductFormSchema>;
 export type AddProductForm = z.infer<typeof addProductFormSchema>;
 export type PurchaseInvoiceForm = z.infer<
   typeof createPurchaseInvoiceFormSchema
@@ -48,7 +47,7 @@ export const checkoutSchema = z.object({
   items: z
     .array(
       z.object({
-        variantId: z.string().cuid(),
+        productId: z.string().cuid(),
         quantity: z.number().int().min(1).max(100),
       }),
     )
@@ -63,94 +62,111 @@ export const checkoutSchema = z.object({
   guestName: z.string().optional(),
 });
 
-export const updateProductSchema = z.object({
-  name: z.string().min(1),
-  slug: z.string().min(1),
-  description: z.array(z.string()),
-  madeIn: z.string().nullable(),
-  images: z.array(z.string()),
-  categoryId: z.string().min(1),
-  familyId: z.string().min(1),
-  brandId: z.string().nullable(),
-  isActive: z.coerce.boolean(),
-  archived: z.coerce.boolean(),
-  featured: z.coerce.boolean(),
-  bestSeller: z.coerce.boolean(),
+
+
+
+/* ───────────────────────────────────────────────
+   Add-product form schema (client-side)
+   ─────────────────────────────────────────────── */
+export const addProductFormSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string(),
+  madeIn: z.string(),
+  price: z.number().min(0.01, "Price must be greater than 0"),
+  stock: z.number().int().min(0, "Stock cannot be negative"),
+  sku: z.string(),
+  images: z.string(),
+  categoryId: z.string().min(1, "Category is required"),
+  familyId: z.string().min(1, "Family is required"),
+  brandId: z.string(),
+  isActive: z.boolean(),
+  archived: z.boolean(),
+  featured: z.boolean(),
+  bestSeller: z.boolean(),
+  sizeValueId: z.string(),
+  unitValueId: z.string(),
+  colorValueId: z.string(),
+  shadeValueId: z.string(),
 });
 
+
+/* ───────────────────────────────────────────────
+   Edit-product form schema (client-side)
+   Same as add but without slug & attribute selects
+   ─────────────────────────────────────────────── */
+export const editProductFormSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  description: z.string(),
+  madeIn: z.string(),
+  price: z.number().min(0.01, "Price must be greater than 0"),
+  stock: z.number().int().min(0, "Stock cannot be negative"),
+  sku: z.string(),
+  images: z.string(),
+  categoryId: z.string().min(1, "Category is required"),
+  familyId: z.string().min(1, "Family is required"),
+  brandId: z.string(),
+  isActive: z.boolean(),
+  archived: z.boolean(),
+  featured: z.boolean(),
+  bestSeller: z.boolean(),
+});
+
+// export type EditProductForm = z.infer<typeof editProductFormSchema>;
+
+/* ───────────────────────────────────────────────
+   Server schemas (arrays + nulls)
+   ─────────────────────────────────────────────── */
 export const addProductSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.array(z.string()),
   madeIn: z.string().nullable(),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0),
+  price: z.number().min(0.01),
+  stock: z.number().int().min(0),
+  sku: z.string().optional(),
   images: z.array(z.string()),
-  categoryId: z.string().min(1),
-  familyId: z.string().min(1),
+  categoryId: z.string(),
+  familyId: z.string().optional(),
   brandId: z.string().nullable(),
-  isActive: z.coerce.boolean(),
-  archived: z.coerce.boolean(),
-  featured: z.coerce.boolean(),
-  bestSeller: z.coerce.boolean(),
+  isActive: z.boolean(),
+  archived: z.boolean(),
+  featured: z.boolean(),
+  bestSeller: z.boolean(),
+  attributes: z
+    .array(
+      z.object({
+        attributeTypeId: z.string(),
+        attributeValueId: z.string(),
+      })
+    )
+    .optional()
+    .refine(
+      (attrs) =>
+        !attrs || new Set(attrs.map((a) => a.attributeTypeId)).size === attrs.length,
+      "Each attribute type can only have one value per product"
+    ),
 });
 
-export const updateVariantSchema = z.object({
+export const updateProductSchema = z.object({
   name: z.string().min(1),
-  sku: z.string().nullable(),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0),
-  isLimitedQuantity: z.coerce.boolean(),
-  image: z.string().nullable(),
-  isActive: z.coerce.boolean(),
-  archived: z.coerce.boolean(),
-});
-
-export const editProductSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
-  description: z.string(),
-  madeIn: z.string(),
-  images: z.string(),
-  categoryId: z.string().min(1, "Category is required"),
-  familyId: z.string().min(1, "Family is required"),
-  brandId: z.string(),
+  description: z.array(z.string()),
+  madeIn: z.string().nullable(),
+  images: z.array(z.string()),
+  categoryId: z.string(),
+  familyId: z.string(),
+  brandId: z.string().nullable(),
   isActive: z.boolean(),
   archived: z.boolean(),
   featured: z.boolean(),
   bestSeller: z.boolean(),
+  price: z.number().min(0.01),
+  stock: z.number().int().min(0),
+  sku: z.string().optional(),
 });
-
-export const addProductFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
-  description: z.string(),
-  madeIn: z.string(),
-  price: z.number().positive("Price must be positive"),
-  stock: z.number().int().min(0, "Stock can't be negative"),
-  images: z.string(),
-  categoryId: z.string().min(1, "Category is required"),
-  familyId: z.string().min(1, "Family is required"),
-  brandId: z.string(),
-  isActive: z.boolean(),
-  archived: z.boolean(),
-  featured: z.boolean(),
-  bestSeller: z.boolean(),
-});
-
-export const editVariantSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  sku: z.string(),
-  price: z.number().positive("Price must be positive"),
-  stock: z.number().int().min(0, "Stock cannot be negative"),
-  isLimitedQuantity: z.boolean(),
-  image: z.string(),
-  isActive: z.boolean(),
-  archived: z.boolean(),
-});
-
+// export type EditProductForm = z.infer<typeof updateProductSchema>;
 export const purchaseInvoiceLineSchema = z.object({
-  variantId: z.string().min(1, "Select a variant"),
+  productId: z.string().min(1, "Select a product"),
   costPrice: z.coerce.number().positive("Cost price must be greater than 0"),
   marginPercent: z.coerce.number().positive("Margin must be greater than 0"),
   quantityAdded: z.coerce
@@ -160,7 +176,7 @@ export const purchaseInvoiceLineSchema = z.object({
 });
 
 export const purchaseInvoiceLineFormSchema = z.object({
-  variantId: z.string().min(1, "Select a variant"),
+  productId: z.string().min(1, "Select a product"),
   costPrice: z.number().positive("Cost price must be greater than 0"),
   marginPercent: z.number().positive("Margin must be greater than 0"),
   quantityAdded: z.number().int().positive("Quantity must be at least 1"),
@@ -177,11 +193,11 @@ export const createPurchaseInvoiceSchema = z
   })
   .refine(
     (data) => {
-      const ids = data.lines.map((l) => l.variantId);
+      const ids = data.lines.map((l) => l.productId);
       return ids.length === new Set(ids).size;
     },
     {
-      message: "Each variant can only appear once per invoice",
+      message: "Each product can only appear once per invoice",
       path: ["lines"],
     },
   );
@@ -197,11 +213,11 @@ export const createPurchaseInvoiceFormSchema = z
   })
   .refine(
     (data) => {
-      const ids = data.lines.map((l) => l.variantId);
+      const ids = data.lines.map((l) => l.productId);
       return ids.length === new Set(ids).size;
     },
     {
-      message: "Each variant can only appear once per invoice",
+      message: "Each product can only appear once per invoice",
       path: ["lines"],
     },
   );

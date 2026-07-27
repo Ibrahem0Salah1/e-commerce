@@ -1,5 +1,5 @@
 import type { ProductListRaw, ProductDetailRaw } from "@/lib/products/selects";
-import type { AdminProductDetailRaw, VariantDetailRaw } from "@/lib/admin/selects";
+import type { AdminProductDetailRaw } from "@/lib/admin/selects";
 import type { TestimonialRaw } from "@/lib/reviews/selects";
 
 export type {
@@ -20,45 +20,41 @@ export type SessionUser = {
 
 export type ProductListItem = Omit<
   ProductListRaw,
-  "basePrice" | "description" | "variants" | "_count" | "reviews" | "family"
+  "description" | "_count" | "reviews" | "family" | "price" | "stock" | "sku"
 > & {
   category: { id: string; name: string; slug: string } | null;
   family: { id: string; name: string; slug: string } | null;
-  basePrice: number;
+  price: number;
+  stock: number | null;
+  sku: string | null;
   description: string[];
-  variants: { id: string; name: string; price: number; stock: number }[];
-  variantCount: number;
   reviewCount: number;
   rating: number | null;
 };
 
 export type CartItem = {
-  variantId: string;
   productId: string;
   slug: string;
   name: string;
   price: number;
   image: string;
-  variantName: string;
   quantity: number;
 };
 
 export type ProductDetail = Omit<
   ProductDetailRaw,
-  "basePrice" | "variants" | "specGroups" | "_count" | "family"
+  "attributeValues" | "specGroups" | "_count" | "family" | "price" | "stock" | "sku"
 > & {
   category: { id: string; name: string; slug: string } | null;
   family: { id: string; name: string; slug: string } | null;
-  basePrice: number;
-  variants: {
-    id: string;
-    name: string;
-    sku: string | null;
-    price: number;
-    stock: number;
-    image: string | null;
-    isActive: boolean;
-    archived: boolean;
+  price: number;
+  stock: number | null;
+  sku: string | null;
+  attributes: {
+    typeName: string;
+    typeSlug: string;
+    value: string;
+    valueSlug: string;
   }[];
   specs: {
     name: string;
@@ -70,25 +66,13 @@ export type ProductDetail = Omit<
 
 export type AdminProductDetail = Omit<
   AdminProductDetailRaw,
-  "basePrice" | "variants" | "family"
+  "family" | "price" | "stock" | "sku"
 > & {
   category: { id: string; name: string; slug: string } | null;
   family: { id: string; name: string; slug: string } | null;
-  basePrice: number;
-  variants: {
-    id: string;
-    name: string;
-    sku: string | null;
-    price: number;
-    stock: number;
-    image: string | null;
-    isActive: boolean;
-    archived: boolean;
-  }[];
-};
-
-export type VariantDetail = Omit<VariantDetailRaw, "price"> & {
   price: number;
+  stock: number | null;
+  sku: string | null;
 };
 
 export type ProductsResult = {

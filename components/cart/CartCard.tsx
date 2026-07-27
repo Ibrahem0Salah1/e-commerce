@@ -2,92 +2,117 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Minus, Plus, Trash2, Bookmark } from "lucide-react";
 import type { CartItem } from "@/lib/types";
 import { formatNumber } from "@/lib/utils/format";
 
 type CartCardProps = {
   item: CartItem;
-  onUpdateQuantity: (variantId: string, quantity: number) => void;
-  onRemove: (variantId: string) => void;
+  onUpdateQuantity: (productId: string, quantity: number) => void;
+  onRemove: (productId: string) => void;
 };
 
 export function CartCard({ item, onUpdateQuantity, onRemove }: CartCardProps) {
   const lineTotal = item.price * item.quantity;
 
   return (
-    <div className="flex gap-4 rounded-xl border border-border bg-card p-4">
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-secondary/40 sm:size-24">
-        <Image
-          src={item.image || "/placeholder-product.png"}
-          alt={item.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 640px) 80px, 96px"
-        />
+    <div className="bg-card border border-border rounded-lg p-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 items-start md:items-center hover:border-border/80 transition-colors duration-150">
+      {/* ── Product column ── */}
+      <div className="col-span-6 flex items-start gap-4 w-full">
+        <div className="relative w-24 h-24 shrink-0 overflow-hidden rounded-md bg-muted border border-border/40">
+          <Image
+            src={item.image || "/placeholder-product.png"}
+            alt={item.name}
+            fill
+            className="object-cover"
+            sizes="96px"
+          />
+        </div>
+        <div className="flex flex-col grow min-w-0">
+          <Link
+            href={`/shop/${item.slug}`}
+            className="text-sm font-semibold text-foreground leading-tight hover:text-primary transition-colors line-clamp-2"
+          >
+            {item.name}
+          </Link>
+          {/* SKU — add to CartItem type if you want it displayed */}
+          {(item as any).sku && (
+            <span className="text-xs text-muted-foreground mt-1">
+              SKU: {(item as any).sku}
+            </span>
+          )}
+          {/* Variant / attribute summary */}
+          {(item as any).variant && (
+            <span className="text-xs text-muted-foreground">
+              {(item as any).variant}
+            </span>
+          )}
+          <div className="flex gap-4 mt-2">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              onClick={() => {
+                // TODO: wire up "save for later" backend
+              }}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              Save for later
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(item.productId)}
+              className="text-xs text-destructive hover:text-destructive/80 transition-colors flex items-center gap-1"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Remove
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <Link
-              href={`/shop/${item.slug}`}
-              className="line-clamp-1 text-sm font-medium text-foreground transition-colors hover:text-primary"
-            >
-              {item.name}
-            </Link>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {item.variantName}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {formatNumber(item.price)} EGP / item
-            </p>
-          </div>
+      {/* ── Unit Price ── */}
+      <div className="col-span-2 text-center w-full md:w-auto mt-4 md:mt-0 flex justify-between md:block items-center">
+        <span className="md:hidden text-xs text-muted-foreground uppercase tracking-wider font-medium">Price</span>
+        <span className="text-sm text-foreground tabular-nums">
+          {formatNumber(item.price)} EGP
+        </span>
+      </div>
 
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="shrink-0 cursor-pointer text-muted-foreground hover:text-destructive"
-            onClick={() => onRemove(item.variantId)}
-            aria-label={`Remove ${item.name}`}
+      {/* ── Quantity stepper ── */}
+      <div className="col-span-2 flex justify-center w-full md:w-auto mt-3 md:mt-0">
+        <div className="flex items-center border border-border rounded-md h-8">
+          <button
+            type="button"
+            aria-label="Decrease quantity"
+            className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors rounded-l-md"
+            onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
           >
-            <Trash2 />
-          </Button>
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <input
+            type="number"
+            min={1}
+            value={item.quantity}
+            readOnly
+            className="w-12 h-full text-center border-none focus:ring-0 text-sm bg-transparent text-foreground tabular-nums p-0"
+          />
+          <button
+            type="button"
+            aria-label="Increase quantity"
+            className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors rounded-r-md"
+            onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
         </div>
+      </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon-xs"
-              className="cursor-pointer"
-              onClick={() => onUpdateQuantity(item.variantId, item.quantity - 1)}
-              aria-label="Decrease quantity"
-            >
-              <Minus />
-            </Button>
-            <span className="flex h-7 w-10 items-center justify-center text-sm tabular-nums">
-              {item.quantity}
-            </span>
-            <Button
-              variant="outline"
-              size="icon-xs"
-              className="cursor-pointer"
-              onClick={() => onUpdateQuantity(item.variantId, item.quantity + 1)}
-              aria-label="Increase quantity"
-            >
-              <Plus />
-            </Button>
-          </div>
-
-          <span className="text-sm font-semibold tabular-nums">
-            {formatNumber(lineTotal)}
-            <span className="ml-0.5 text-xs font-normal text-muted-foreground">
-              EGP
-            </span>
-          </span>
-        </div>
+      {/* ── Subtotal ── */}
+      <div className="col-span-2 text-right w-full md:w-auto mt-3 md:mt-0 flex justify-between md:block items-center">
+        <span className="md:hidden text-xs text-muted-foreground uppercase tracking-wider font-medium">Subtotal</span>
+        <span className="text-sm font-semibold text-foreground tabular-nums">
+          {formatNumber(lineTotal)} EGP
+        </span>
       </div>
     </div>
   );

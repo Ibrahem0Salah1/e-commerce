@@ -13,15 +13,11 @@ export default async function RestockPage() {
     select: {
       id: true,
       name: true,
-      variants: {
-        where: { isActive: true, archived: false },
-        select: { id: true, name: true, stock: true },
-        orderBy: { name: "asc" },
-      },
+      stock: true,
+      // price: true,
+      // images: true,
     },
   });
-
-  const productsWithVariants = products.filter((p) => p.variants.length > 0);
 
   return (
     <section className="space-y-6">
@@ -41,10 +37,10 @@ export default async function RestockPage() {
 
       <AdminRules variant="restock" />
 
-      {productsWithVariants.length === 0 ? (
+      {products.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No products with variants found.{" "}
+            No products found.{" "}
             <Link href="/admin/products/new" className="text-primary hover:underline">
               Create a product first
             </Link>
@@ -52,7 +48,7 @@ export default async function RestockPage() {
           </p>
         </div>
       ) : (
-        <NewInvoiceForm products={productsWithVariants} />
+        <NewInvoiceForm products={products} />
       )}
     </section>
   );

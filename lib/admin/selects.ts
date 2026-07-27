@@ -6,7 +6,9 @@ export const adminProductDetailSelect = {
   slug: true,
   description: true,
   madeIn: true,
-  basePrice: true,
+  price: true,
+  stock: true,
+  sku: true,
   images: true,
   featured: true,
   bestSeller: true,
@@ -21,19 +23,6 @@ export const adminProductDetailSelect = {
     },
   },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
-  variants: {
-    orderBy: { price: "asc" as const },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      price: true,
-      stock: true,
-      image: true,
-      isActive: true,
-      archived: true,
-    },
-  },
   specGroups: {
     orderBy: { position: "asc" as const },
     select: {
@@ -51,24 +40,4 @@ export const adminProductDetailSelect = {
 
 export type AdminProductDetailRaw = Prisma.ProductGetPayload<{
   select: typeof adminProductDetailSelect;
-}>;
-
-export const variantDetailSelect = {
-  id: true,
-  name: true,
-  sku: true,
-  price: true,
-  stock: true,
-  isLimitedQuantity: true,
-  image: true,
-  isActive: true,
-  archived: true,
-  createdAt: true,
-  updatedAt: true,
-  productId: true,
-  product: { select: { id: true, name: true, slug: true } },
-} satisfies Prisma.VariantSelect;
-
-export type VariantDetailRaw = Prisma.VariantGetPayload<{
-  select: typeof variantDetailSelect;
 }>;

@@ -1,146 +1,172 @@
-import Link from "next/link";
-import { Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import Image from "next/image";
+"use client";
 
-export interface CardData {
-  id: number;
-  title: string;
-  category: string;
-  image: string;
-  slug: string;
-  brand: string;
-  price: number;
-  variantsCount: number;
-  rating: number | null;
-  reviewCount: number;
-  description: string | null;
+import { useRef, useCallback, useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import { ProductCard, type ProductListItem } from "@/components/products/ProductCard";
+
+interface CardsSliderProps {
+  products: ProductListItem[];
 }
 
-export function CardsSlider({ cards }: { cards: CardData[] }) {
-  return (
-    <Carousel opts={{ align: "start" }} className="w-full">
-      <CarouselContent className="-ml-4">
-        {cards.map((card, i) => (
-          <CarouselItem
-            key={card.id}
-            className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
-          >
-            <CardItem card={card} priority={i < 2} />
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <CarouselPrevious />
-      <CarouselNext />
-    </Carousel>
+export function CardsSlider({ products }: CardsSliderProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  /* ── Calculate pages based on actual layout ── */
+  const calculatePages = useCallback(() => {
+    const scrollEl = scrollRef.current;
+    const containerEl = containerRef.current;
+    if (!scrollEl || !containerEl) return;
+
+    const firstCard = scrollEl.firstElementChild as HTMLElement | null;
+    if (!firstCard) return;
+
+    const containerWidth = containerEl.clientWidth;
+    const cardWidth = firstCard.offsetWidth;
+    const gap = 16; // gap-4 = 16px
+    const cardsPerView = Math.max(1, Math.floor(containerWidth / (cardWidth + gap)));
+    const pages = Math.max(1, Math.ceil(products.length / cardsPerView));
+
+    setTotalPages(pages);
+
+    // Derive current page from scroll position
+    const maxScroll = scrollEl.scrollWidth - containerWidth;
+    if (maxScroll <= 0) {
+      setPage(0);
+      return;
+    }
+    const pageWidth = cardsPerView * (cardWidth + gap);
+    const currentPage = Math.round(scrollEl.scrollLeft / pageWidth);
+    setPage(Math.min(currentPage, pages - 1));
+  }, [products.length]);
+
+  useEffect(() => {
+    calculatePages();
+
+    const ro = new ResizeObserver(calculatePages);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener("resize", calculatePages);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", calculatePages);
+    };
+  }, [calculatePages]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => calculatePages();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [calculatePages]);
+
+  /* ── Scroll to a specific page ── */
+  const scrollToPage = useCallback(
+    (pageIndex: number) => {
+      const scrollEl = scrollRef.current;
+      const containerEl = containerRef.current;
+      if (!scrollEl || !containerEl) return;
+
+      const firstCard = scrollEl.firstElementChild as HTMLElement | null;
+      if (!firstCard) return;
+
+      const cardWidth = firstCard.offsetWidth;
+      const gap = 16;
+      const containerWidth = containerEl.clientWidth;
+      const cardsPerView = Math.max(
+        1,
+        Math.floor(containerWidth / (cardWidth + gap))
+      );
+
+      const targetScroll = pageIndex * cardsPerView * (cardWidth + gap);
+      scrollEl.scrollTo({ left: targetScroll, behavior: "smooth" });
+    },
+    []
   );
-}
 
-function CardItem({ card, priority }: { card: CardData; priority?: boolean }) {
+  const scroll = useCallback(
+    (dir: "left" | "right") => {
+      const next =
+        dir === "left"
+          ? Math.max(0, page - 1)
+          : Math.min(totalPages - 1, page + 1);
+      scrollToPage(next);
+    },
+    [page, totalPages, scrollToPage]
+  );
+
+  if (products.length === 0) return null;
+
   return (
-    <Link href={`shop/${card.slug}`} className="block h-full group">
-      {/*
-        The whole card is a vertical flex column with a fixed height.
-        Each section below gets a fixed shape so items in the SAME row
-        across different cards line up, regardless of content length:
-
-        - image:       fixed aspect ratio
-        - brand:       1 line, fixed height
-        - title:       2 lines, fixed height (clamped)
-        - description: 2 lines, fixed height (clamped)
-        - rating:      1 line, fixed height
-        - footer:      pushed to the bottom via mt-auto
-      */}
-      <Card className="flex h-full flex-col overflow-hidden rounded-lg border border-border/50 bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
-        {/* Image */}
-        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden border-b border-border/30 bg-background p-3">
-          <Image
-            src={card.image}
-            alt={card.title}
-            width={400}
-            height={400}
-            loading={priority ? "eager" : "lazy"}
-            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-          />
-          {card.category && (
-            <Badge
-              variant="secondary"
-              className="absolute left-3 top-3 rounded-md px-2 py-1 text-[10px] font-medium"
-            >
-              {card.category}
-            </Badge>
-          )}
-        </div>
-
-        {/* Content — vertical flex, each row a fixed height so cards align */}
-        <div className="flex flex-1 flex-col gap-2 p-4">
-          {/* Brand — 1 line */}
-          <div className="mb-1 flex h-5 items-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <span className="line-clamp-1">{card.brand}</span>
+    <div ref={containerRef} className="relative group/slider">
+      {/* ── Scroll track ── */}
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 pt-1 px-1 -mx-1"
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {products.map((product, i) => (
+          <div
+            key={product.id}
+            className="snap-start shrink-0 w-65 sm:w-70 lg:w-75"
+            style={{ contentVisibility: "auto" }}
+          >
+            <ProductCard product={product} priority={i < 2} />
           </div>
+        ))}
+      </div>
 
-          {/* Title — always reserves 2 lines */}
-          <h3 className="line-clamp-2 min-h-11 text-[15px] font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
-            {card.title}
-          </h3>
+      {/* ── Prev / Next arrows (desktop only) ── */}
+      <button
+        onClick={() => scroll("left")}
+        className={cn(
+          "absolute left-0 top-[calc(50%-20px)] -translate-y-1/2 -translate-x-3 hidden lg:flex h-9 w-9 items-center justify-center rounded-full bg-background/95 border border-border/60 text-foreground shadow-sm transition-opacity duration-200",
+          "opacity-0 group-hover/slider:opacity-100",
+          page === 0 && "pointer-events-none opacity-0"
+        )}
+        aria-label="Previous products"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
 
-          {/* Description — always reserves 2 lines */}
-          <p className="line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
-            {card.description ?? ""}
-          </p>
+      <button
+        onClick={() => scroll("right")}
+        className={cn(
+          "absolute right-0 top-[calc(50%-20px)] -translate-y-1/2 translate-x-3 hidden lg:flex h-9 w-9 items-center justify-center rounded-full bg-background/95 border border-border/60 text-foreground shadow-sm transition-opacity duration-200",
+          "opacity-0 group-hover/slider:opacity-100",
+          page === totalPages - 1 && "pointer-events-none opacity-0"
+        )}
+        aria-label="Next products"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
 
-          {/* Rating — 1 line */}
-          <div className="mt-1 flex h-5 items-center gap-1.5 text-sm">
-            {card.rating !== null ? (
-              <>
-                <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                <span className="font-medium text-foreground">
-                  {card.rating.toFixed(1)}
-                </span>
-                <span className="text-muted-foreground">
-                  ({card.reviewCount})
-                </span>
-              </>
-            ) : (
-              <span className="text-muted-foreground">No reviews yet</span>
-            )}
-          </div>
-
-          {/* Footer — pushed to bottom with mt-auto so all footers align */}
-          <div className="mt-auto flex items-end justify-between gap-2 border-t border-border/40 pt-4">
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Price
-              </span>
-              <span className="text-lg font-bold text-primary">
-                EGP{" "}
-                {card.price.toLocaleString("en-EG", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-
-            {/* Reserve space even when there are no variants, so the
-                price row keeps identical height across cards. */}
-            <div className="flex h-6 items-center">
-              {card.variantsCount > 1 && (
-                <Badge
-                  variant="secondary"
-                  className="rounded-md px-2 py-1 text-[11px] font-medium"
-                >{card.variantsCount} Options</Badge>
+      {/* ── Pagination dots ── */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-1">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToPage(i)}
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300 ease-out",
+                i === page
+                  ? "w-6 bg-primary"
+                  : "w-1.5 bg-border hover:bg-muted-foreground/50"
               )}
-            </div>
-          </div>
+              aria-label={`Go to page ${i + 1}`}
+            />
+          ))}
         </div>
-      </Card>
-    </Link>
+      )}
+    </div>
   );
 }
