@@ -2,18 +2,10 @@
 
 import Link from "next/link";
 import { formatNumber } from "@/lib/utils/format";
-
-type Invoice = {
-  id: string;
-  supplierName: string | null;
-  invoiceNumber: string | null;
-  totalCost: { toString(): string };
-  createdAt: Date;
-  _count: { items: number };
-};
+import type { PurchaseInvoiceListItem } from "@/lib/restock/queries";
 
 type Props = {
-  invoices: Invoice[];
+  invoices: PurchaseInvoiceListItem[];
 };
 
 export function InvoicesList({ invoices }: Props) {
@@ -36,10 +28,7 @@ export function InvoicesList({ invoices }: Props) {
               className="border-b border-border/50 transition-colors hover:bg-secondary/40 last:border-0"
             >
               <td className="px-4 py-3">
-                <Link
-                  href={`/admin/invoices/${invoice.id}`}
-                  className="block"
-                >
+                <Link href={`/admin/invoices/${invoice.id}`} className="block">
                   {new Date(invoice.createdAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
@@ -48,35 +37,24 @@ export function InvoicesList({ invoices }: Props) {
                 </Link>
               </td>
               <td className="px-4 py-3 font-mono text-xs">
-                <Link
-                  href={`/admin/invoices/${invoice.id}`}
-                  className="block"
-                >
+                <Link href={`/admin/invoices/${invoice.id}`} className="block">
                   {invoice.invoiceNumber ?? "\u2014"}
                 </Link>
               </td>
               <td className="px-4 py-3">
-                <Link
-                  href={`/admin/invoices/${invoice.id}`}
-                  className="block"
-                >
+                <Link href={`/admin/invoices/${invoice.id}`} className="block">
                   {invoice.supplierName ?? "\u2014"}
                 </Link>
               </td>
               <td className="px-4 py-3">
-                <Link
-                  href={`/admin/invoices/${invoice.id}`}
-                  className="block"
-                >
-                  {invoice._count.items} item{invoice._count.items !== 1 ? "s" : ""}
+                <Link href={`/admin/invoices/${invoice.id}`} className="block">
+                  {invoice._count.items} item
+                  {invoice._count.items !== 1 ? "s" : ""}
                 </Link>
               </td>
               <td className="px-4 py-3 text-right font-medium">
-                <Link
-                  href={`/admin/invoices/${invoice.id}`}
-                  className="block"
-                >
-                  {formatNumber(Number(invoice.totalCost))} EGP
+                <Link href={`/admin/invoices/${invoice.id}`} className="block">
+                  {formatNumber(invoice.totalCost)} EGP
                 </Link>
               </td>
             </tr>

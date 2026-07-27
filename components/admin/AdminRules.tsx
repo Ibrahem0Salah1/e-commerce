@@ -3,17 +3,13 @@ import { Info } from "lucide-react";
 const rules = {
   restock: [
     "The product must exist before you can restock it. If it doesn't exist, create it first.",
-    "If a product has only one variant, that variant is the 'Default' variant — it represents the product itself.",
     "The selling price is calculated as: cost price + margin%. You set the cost and margin per line.",
-    "Restocking updates the variant's price and stock. It also updates the product's basePrice (shown as 'starts from' on the shop).",
-    "Do not update the cost price by editing a variant — cost price is only set through restock invoices. This keeps your cost history accurate for revenue reports.",
-    "basePrice on the product card is always the lowest active variant price. It's shown to customers as 'starts from X EGP'.",
+    "Restocking updates the product's price and stock directly.",
+    "Do not update the cost price by editing the product — cost price is only set through restock invoices. This keeps your cost history accurate for revenue reports.",
   ],
   addProduct: [
-    "When you create a product, a 'Default' variant is automatically created with the price you enter.",
-    "The product's basePrice is always calculated from the lowest active variant price — you cannot set it manually.",
-    "To change the price of a single-variant product, edit the 'Default' variant's price. The basePrice will update automatically.",
-    "To add more variants later, use the variant management on the product detail page.",
+    "Set the price and stock when creating the product.",
+    "To change the price or stock later, edit the product or use restock invoices.",
   ],
 } as const;
 

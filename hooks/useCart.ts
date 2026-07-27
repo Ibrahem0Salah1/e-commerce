@@ -2,54 +2,108 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useEffect, useCallback } from "react";
 import type { CartItem } from "@/lib/types";
 import { useGuestCart } from "@/lib/cart/store";
 import { authClient } from "@/lib/auth/client";
-import { useEffect, useRef } from "react";
 import {
   addToCartAction,
   getCartAction,
   removeFromCartAction,
   updateCartQuantityAction,
+  clearCartAction,
 } from "@/lib/cart/actions";
+
+/* ── Module-level guard: ensures merge runs once per user, globally ── */
+let lastMergedUserId: string | null = null;
 
 export function useCart() {
   const { data: session, isPending: sessionLoading } = authClient.useSession();
   const queryClient = useQueryClient();
   const isLoggedIn = !!session;
-  const hasMerged = useRef(false);
   const guestCart = useGuestCart();
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["cart"] });
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["cart"] }),
+    [queryClient],
+  );
 
+  /* ── Merge guest cart on login ── */
   const mergeMutation = useMutation({
-    mutationFn: (items: CartItem[]) =>
-      Promise.allSettled(
-        items.map((item) => addToCartAction(item.variantId, item.quantity)),
-      ),
-    onSuccess: () => {
-      guestCart.clearCart();
-      invalidate();
-      toast.success("Cart synced", {
-        description: "Your guest cart items have been added.",
+    mutationFn: async (items: CartItem[]) => {
+      const results = await Promise.allSettled(
+        items.map((item) => addToCartAction(item.productId, item.quantity)),
+      );
+
+      const succeeded: string[] = [];
+      const failed: string[] = [];
+
+      results.forEach((res, idx) => {
+        if (res.status === "fulfilled" && res.value.success) {
+          succeeded.push(items[idx].productId);
+        } else {
+          failed.push(items[idx].productId);
+        }
       });
+
+      return { succeeded, failed };
+    },
+    onSuccess: ({ succeeded, failed }) => {
+      if (succeeded.length > 0) {
+        // Functional update: remove only the items we just merged,
+        // preserving anything the user added to guest cart while merge was in flight
+        useGuestCart.setState((state) => ({
+          items: state.items.filter((i) => !succeeded.includes(i.productId)),
+        }));
+      }
+
+      if (failed.length === 0) {
+        toast.success("Cart synced", {
+          description: "Your guest cart items have been added.",
+        });
+      } else if (succeeded.length > 0) {
+        toast.success("Partially synced", {
+          description: `${succeeded.length} item(s) added. ${failed.length} failed (stock or availability).`,
+        });
+      } else {
+        toast.error("Sync failed", {
+          description:
+            "None of your guest items could be added. They remain in your local cart.",
+        });
+      }
+
+      invalidate();
     },
     onError: () => {
-      hasMerged.current = false;
+      // Allow retry on next mount / auth change
+      lastMergedUserId = null;
       toast.error("Sync failed", {
-        description: "Could not merge your guest cart.",
+        description: "Could not merge your guest cart. Items preserved locally.",
       });
     },
   });
 
   useEffect(() => {
-    if (isLoggedIn && !hasMerged.current && guestCart.items.length > 0) {
-      hasMerged.current = true;
+    const userId = session?.user?.id;
+
+    // Reset when logged out so next login can merge again
+    if (!isLoggedIn) {
+      lastMergedUserId = null;
+      return;
+    }
+
+    if (
+      userId &&
+      lastMergedUserId !== userId &&
+      !mergeMutation.isPending &&
+      guestCart.items.length > 0
+    ) {
+      lastMergedUserId = userId;
       mergeMutation.mutate(guestCart.items);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, session?.user?.id, guestCart.items, mergeMutation]);
 
+  /* ── Server cart query ── */
   const query = useQuery({
     queryKey: ["cart"],
     queryFn: getCartAction,
@@ -57,15 +111,16 @@ export function useCart() {
     staleTime: 30_000,
   });
 
+  /* ── Mutations ── */
   const addMutation = useMutation({
     mutationFn: async ({
-      variantId,
+      productId,
       quantity,
     }: {
-      variantId: string;
+      productId: string;
       quantity: number;
     }) => {
-      const result = await addToCartAction(variantId, quantity);
+      const result = await addToCartAction(productId, quantity);
       if (!result.success) throw new Error(result.toast.title);
       return result;
     },
@@ -82,13 +137,13 @@ export function useCart() {
 
   const updateMutation = useMutation({
     mutationFn: async ({
-      variantId,
+      productId,
       quantity,
     }: {
-      variantId: string;
+      productId: string;
       quantity: number;
     }) => {
-      const result = await updateCartQuantityAction(variantId, quantity);
+      const result = await updateCartQuantityAction(productId, quantity);
       if (!result.success) throw new Error(result.toast.title);
       return result;
     },
@@ -104,8 +159,8 @@ export function useCart() {
   });
 
   const removeMutation = useMutation({
-    mutationFn: async (variantId: string) => {
-      const result = await removeFromCartAction(variantId);
+    mutationFn: async (productId: string) => {
+      const result = await removeFromCartAction(productId);
       if (!result.success) throw new Error(result.toast.title);
       return result;
     },
@@ -116,59 +171,93 @@ export function useCart() {
       });
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Could not remove item");
+      toast.error(
+        err instanceof Error ? err.message : "Could not remove item",
+      );
     },
   });
 
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      const result = await clearCartAction();
+      if (!result.success) throw new Error(result.toast.title);
+      return result;
+    },
+    onSuccess: (result) => {
+      invalidate();
+      toast.success(result.toast.title);
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof Error ? err.message : "Could not clear cart",
+      );
+    },
+  });
+
+  /* ── Unified API ── */
   const items = isLoggedIn ? (query.data ?? []) : guestCart.items;
 
   const addItem = (item: Omit<CartItem, "quantity">, quantity = 1) => {
     if (isLoggedIn) {
-      addMutation.mutate({ variantId: item.variantId, quantity });
+      addMutation.mutate({ productId: item.productId, quantity });
     } else {
       guestCart.addItem(item, quantity);
       toast.success("Added to cart", {
-        description: `${item.name} (${item.variantName}) has been added.`,
+        description: `${item.name} has been added.`,
       });
     }
   };
 
-  const updateQuantity = (variantId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number) => {
     if (isLoggedIn) {
-      updateMutation.mutate({ variantId, quantity });
+      updateMutation.mutate({ productId, quantity });
     } else {
       if (quantity <= 0) {
-        guestCart.removeItem(variantId);
+        guestCart.removeItem(productId);
         toast.success("Item removed");
       } else {
-        guestCart.updateQuantity(variantId, quantity);
+        guestCart.updateQuantity(productId, quantity);
         toast.success("Quantity updated");
       }
     }
   };
 
-  const removeItem = (variantId: string) => {
+  const removeItem = (productId: string) => {
     if (isLoggedIn) {
-      removeMutation.mutate(variantId);
+      removeMutation.mutate(productId);
     } else {
-      guestCart.removeItem(variantId);
+      guestCart.removeItem(productId);
       toast.success("Item removed", {
         description: "Item has been removed from your cart.",
       });
     }
   };
 
+  const clearCart = () => {
+    if (isLoggedIn) {
+      clearMutation.mutate();
+    } else {
+      guestCart.clearCart();
+      toast.success("Cart cleared");
+    }
+  };
+
   const totalItems = items.reduce((s, i) => s + i.quantity, 0);
-  const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const totalPrice = items.reduce(
+    (s, i) => s + Number(i.price) * i.quantity,
+    0,
+  );
 
   return {
     items,
     addItem,
     removeItem,
     updateQuantity,
+    clearCart,
     totalItems,
     totalPrice,
     isLoggedIn,
     isLoading: sessionLoading || (isLoggedIn && query.isLoading),
+    isMerging: mergeMutation.isPending,
   };
 }

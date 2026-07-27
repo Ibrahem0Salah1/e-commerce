@@ -1,26 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getBestsellerProducts } from "@/lib/products/queries";
-import { CardsSlider, type CardData } from "@/components/home/CardsSlider";
+import { CardsSlider } from "@/components/home/CardsSlider";
 
 export async function BestsellerProducts() {
   const products = await getBestsellerProducts();
 
   if (products.length === 0) return null;
-
-  const sliderCards: CardData[] = products.map((p, i) => ({
-    id: i + 1,
-    title: p.name,
-    category: p.category?.name ?? "",
-    image: p.images[0] ?? "",
-    slug: p.slug,
-    description: p.description[1] ?? "",
-    brand: p.brand?.name ?? "MDS",
-    price: p.basePrice,
-    variantsCount: p.variants.length,
-    rating: p.rating,
-    reviewCount: p.reviewCount,
-  }));
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-b border-border/10">
@@ -36,19 +22,19 @@ export async function BestsellerProducts() {
         <Button
           variant="outline"
           asChild
-          className="hidden sm:inline-flex rounded-[6px] border-border/25 bg-background/50 hover:bg-secondary/40 text-xs font-semibold px-4 py-1.5 h-9 hover:border-border/50 hover:text-foreground transition-all shadow-xs"
+          className="hidden sm:inline-flex rounded-md border-border/30 bg-background text-xs font-semibold px-4 h-9 hover:bg-accent transition-colors"
         >
           <Link href="/shop">View all</Link>
         </Button>
       </div>
 
-      <CardsSlider cards={sliderCards} />
+      <CardsSlider products={products} />
 
       <div className="mt-8 text-center sm:hidden">
         <Button
           variant="outline"
           asChild
-          className="w-full rounded-[6px] border-border/25 bg-background/50 hover:bg-secondary/40 text-xs font-semibold py-2 h-10"
+          className="w-full rounded-md border-border/30 bg-background text-xs font-semibold h-10"
         >
           <Link href="/shop">View all products</Link>
         </Button>

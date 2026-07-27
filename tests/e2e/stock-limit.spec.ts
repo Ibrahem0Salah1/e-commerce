@@ -80,13 +80,11 @@ test.describe("Stock limit enforcement", () => {
         state: {
           items: [
             {
-              variantId: "e2e-test-variant",
               productId: "e2e-test-product",
               slug: "test-product",
               name: "Test Product",
               price: 100,
               image: "",
-              variantName: "Default",
               quantity: 1,
             },
           ],
@@ -110,13 +108,11 @@ test.describe("Stock limit enforcement", () => {
         state: {
           items: [
             {
-              variantId: "e2e-test-variant-2",
               productId: "e2e-test-product",
               slug: "test-product",
               name: "Test Item",
               price: 100,
               image: "",
-              variantName: "Default",
               quantity: 2,
             },
           ],

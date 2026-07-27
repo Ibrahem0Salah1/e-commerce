@@ -5,8 +5,8 @@ import type { CartItem } from "@/lib/types";
 interface CartState {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (variantId: string) => void;
-  updateQuantity: (variantId: string, quantity: number) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
 }
 
@@ -18,12 +18,12 @@ export const useGuestCart = create(
       addItem: (item, quantity = 1) =>
         set((state) => {
           const existing = state.items.find(
-            (i) => i.variantId === item.variantId,
+            (i) => i.productId === item.productId,
           );
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.variantId === item.variantId
+                i.productId === item.productId
                   ? { ...i, quantity: i.quantity + quantity }
                   : i,
               ),
@@ -32,20 +32,20 @@ export const useGuestCart = create(
           return { items: [...state.items, { ...item, quantity }] };
         }),
 
-      removeItem: (variantId) =>
+      removeItem: (productId) =>
         set((state) => ({
-          items: state.items.filter((i) => i.variantId !== variantId),
+          items: state.items.filter((i) => i.productId !== productId),
         })),
 
-      updateQuantity: (variantId, quantity) =>
+      updateQuantity: (productId, quantity) =>
         set((state) =>
           quantity <= 0
-            ? { items: state.items.filter((i) => i.variantId !== variantId) }
+            ? { items: state.items.filter((i) => i.productId !== productId) }
             : {
-                items: state.items.map((i) =>
-                  i.variantId === variantId ? { ...i, quantity } : i,
-                ),
-              },
+              items: state.items.map((i) =>
+                i.productId === productId ? { ...i, quantity } : i,
+              ),
+            },
         ),
 
       clearCart: () => set({ items: [] }),

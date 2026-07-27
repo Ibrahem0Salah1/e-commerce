@@ -27,13 +27,13 @@ export function ProductList({ products, onDelete, onToggleActive }: ProductListP
   return (
     <div className="space-y-3">
       {products.map((product) => {
-        const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+        const stock = product.stock ?? 0;
 
         return (
           <Link
             key={product.id}
             href={`/admin/product/${product.slug}`}
-            className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm block"
+            className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm"
           >
             <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-secondary/40 sm:size-20">
               <Image
@@ -54,11 +54,10 @@ export function ProductList({ products, onDelete, onToggleActive }: ProductListP
                     </p>
                     <Badge
                       variant={product.isActive ? "default" : "destructive"}
-                      className={`shrink-0 text-[10px] ${
-                        product.isActive
+                      className={`shrink-0 text-[10px] ${product.isActive
                           ? "bg-emerald-600 hover:bg-emerald-600"
                           : ""
-                      }`}
+                        }`}
                     >
                       {product.isActive ? "Active" : "Inactive"}
                     </Badge>
@@ -129,16 +128,15 @@ export function ProductList({ products, onDelete, onToggleActive }: ProductListP
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="font-medium text-foreground">
-                    From {formatNumber(product.basePrice)} EGP
+                    {product.price != null
+                      ? `${formatNumber(product.price)} EGP`
+                      : product.price > 0
+                        ? `From ${formatNumber(product.price)} EGP`
+                        : "No price set"}
                   </span>
                   <span className="text-muted-foreground/40">|</span>
                   <span>
-                    {product.variants.length} variant
-                    {product.variants.length !== 1 ? "s" : ""}
-                  </span>
-                  <span className="text-muted-foreground/40">|</span>
-                  <span>
-                    {totalStock} in stock
+                    {stock} in stock
                   </span>
                 </div>
               </div>

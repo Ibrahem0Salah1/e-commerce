@@ -17,19 +17,12 @@ import { Trash2, Plus, Loader2 } from "lucide-react";
 type ProductOption = {
   id: string;
   name: string;
-  variants: { id: string; name: string; stock: number }[];
+  stock: number | null;
+  // images: string[];
 };
 
 export function NewInvoiceForm({ products }: { products: ProductOption[] }) {
   const [submitting, setSubmitting] = useState(false);
-
-  const allVariants = products.flatMap((p) =>
-    p.variants.map((v) => ({
-      id: v.id,
-      label: `${p.name} \u2014 ${v.name}`,
-      stock: v.stock,
-    })),
-  );
 
   const form = useForm<PurchaseInvoiceForm>({
     resolver: zodResolver(createPurchaseInvoiceFormSchema),
@@ -37,7 +30,7 @@ export function NewInvoiceForm({ products }: { products: ProductOption[] }) {
       supplierName: "",
       invoiceNumber: "",
       supplierPhone: "",
-      lines: [{ variantId: "", costPrice: 0, marginPercent: 0, quantityAdded: 1 }],
+      lines: [{ productId: "", costPrice: 0, marginPercent: 0, quantityAdded: 1 }],
     },
   });
 
@@ -57,7 +50,7 @@ export function NewInvoiceForm({ products }: { products: ProductOption[] }) {
         supplierName: "",
         invoiceNumber: "",
         supplierPhone: "",
-        lines: [{ variantId: "", costPrice: 0, marginPercent: 0, quantityAdded: 1 }],
+        lines: [{ productId: "", costPrice: 0, marginPercent: 0, quantityAdded: 1 }],
       });
     } catch (err) {
       toast.error("Failed to save invoice", {
@@ -122,21 +115,21 @@ export function NewInvoiceForm({ products }: { products: ProductOption[] }) {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Variant</Label>
+                <Label>Product</Label>
                 <select
                   className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  {...form.register(`lines.${index}.variantId`)}
+                  {...form.register(`lines.${index}.productId`)}
                 >
-                  <option value="">Select a product/variant...</option>
-                  {allVariants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.label} (stock: {v.stock})
+                  <option value="">Select a product...</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} (stock: {p.stock ?? 0})
                     </option>
                   ))}
                 </select>
-                {form.formState.errors.lines?.[index]?.variantId && (
+                {form.formState.errors.lines?.[index]?.productId && (
                   <p className="text-xs text-destructive">
-                    {form.formState.errors.lines[index]?.variantId?.message}
+                    {form.formState.errors.lines[index]?.productId?.message}
                   </p>
                 )}
               </div>
@@ -210,7 +203,7 @@ export function NewInvoiceForm({ products }: { products: ProductOption[] }) {
         variant="outline"
         size="sm"
         onClick={() =>
-          append({ variantId: "", costPrice: 0, marginPercent: 0, quantityAdded: 1 })
+          append({ productId: "", costPrice: 0, marginPercent: 0, quantityAdded: 1 })
         }
         className="cursor-pointer"
       >

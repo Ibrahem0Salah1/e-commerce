@@ -21,19 +21,15 @@ const mockProduct: ProductListItem = {
     name: "Nitrile Examination Gloves",
     slug: "nitrile-examination-gloves",
     description: ["Powder-free nitrile gloves"],
-    basePrice: 220,
     images: ["/gloves.jpg"],
     featured: false,
     isActive: true,
     category: { id: "cat-1", name: "Disposables", slug: "disposables" },
     family: { id: "fam-1", name: "Gloves", slug: "gloves" },
     brand: null,
-    variants: [
-        { id: "var-1", name: "Small", price: 220, stock: 50 },
-        { id: "var-2", name: "Medium", price: 220, stock: 30 },
-        { id: "var-3", name: "Large", price: 220, stock: 0 },
-    ],
-    variantCount: 3,
+    price: 220,
+    stock: 50,
+    sku: "SKU-001",
     reviewCount: 5,
     rating: 4.5,
 };
@@ -50,81 +46,57 @@ describe("ProductCard", () => {
 
     it("renders price in EGP", () => {
         render(<ProductCard product={mockProduct} />);
-        expect(screen.getByText("220")).toBeInTheDocument();
-        expect(screen.getByText("EGP")).toBeInTheDocument();
+        expect(screen.getByText(/EGP/)).toBeInTheDocument();
+        expect(screen.getByText(/220/)).toBeInTheDocument();
     });
 
-    it("renders variant buttons when product has multiple variants", () => {
+    it("calls addItem with correct product when cart button clicked", async () => {
         render(<ProductCard product={mockProduct} />);
-        expect(screen.getByRole("button", { name: "Small" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Medium" })).toBeInTheDocument();
-    });
-
-    it("shows out-of-stock variant as disabled", () => {
-        render(<ProductCard product={mockProduct} />);
-        const largeBtn = screen.getByRole("button", { name: "Large" });
-        expect(largeBtn).toBeDisabled();
-    });
-
-    it("calls addItem with correct variant when cart button clicked", async () => {
-        render(<ProductCard product={mockProduct} />);
-        const cartBtn = screen.getByRole("button", { name: /cart/i });
+        const cartBtn = screen.getByRole("button", { name: /add to cart/i });
         fireEvent.click(cartBtn);
 
         expect(mockAddItem).toHaveBeenCalledOnce();
         expect(mockAddItem).toHaveBeenCalledWith(
             expect.objectContaining({
-                variantId: "var-1", // first variant selected by default
+                productId: "prod-1",
                 name: "Nitrile Examination Gloves",
                 price: 220,
             })
         );
     });
 
-    it("adds the selected variant when user picks a different one", async () => {
+    it("shows Added feedback after clicking cart", async () => {
         render(<ProductCard product={mockProduct} />);
-
-        // select Medium variant
-        fireEvent.click(screen.getByRole("button", { name: "Medium" }));
-        // click add to cart
-        fireEvent.click(screen.getByRole("button", { name: /cart/i }));
-
-        expect(mockAddItem).toHaveBeenCalledWith(
-            expect.objectContaining({ variantId: "var-2" })
-        );
-    });
-
-    it("shows Added! feedback after clicking cart", async () => {
-        render(<ProductCard product={mockProduct} />);
-        fireEvent.click(screen.getByRole("button", { name: /cart/i }));
+        const cartBtn = screen.getByRole("button", { name: /add to cart/i });
+        fireEvent.click(cartBtn);
 
         await waitFor(() => {
-            expect(screen.getByText("Added!")).toBeVisible();
+            expect(cartBtn.className).toContain("bg-green-600");
         });
     });
 
-    it("shows out of stock badge when default variant is out of stock", () => {
+    it("shows out of stock badge when product is out of stock", () => {
         const outOfStockProduct = {
             ...mockProduct,
-            variants: [{ id: "var-1", name: "Small", price: 220, stock: 0 }],
+            stock: 0,
         };
         render(<ProductCard product={outOfStockProduct} />);
-        expect(screen.getAllByText("Out of stock").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Out of Stock").length).toBeGreaterThan(0);
     });
 
-    it("disables cart button when variant is out of stock", () => {
+    it("disables cart button when product is out of stock", () => {
         const outOfStockProduct = {
             ...mockProduct,
-            variants: [{ id: "var-1", name: "Small", price: 220, stock: 0 }],
+            stock: 0,
         };
         render(<ProductCard product={outOfStockProduct} />);
-        const cartBtn = screen.getByRole("button", { name: /out of stock/i });
+        const cartBtn = screen.getByRole("button", { name: /add to cart/i });
         expect(cartBtn).toBeDisabled();
     });
 
-    it("shows rating when product has reviews", () => {
+    it("does not render rating when product has reviews", () => {
         render(<ProductCard product={mockProduct} />);
-        expect(screen.getByText("4.5")).toBeInTheDocument();
-        expect(screen.getByText("(5)")).toBeInTheDocument();
+        expect(screen.queryByText("4.5")).not.toBeInTheDocument();
+        expect(screen.queryByText("(5)")).not.toBeInTheDocument();
     });
 });

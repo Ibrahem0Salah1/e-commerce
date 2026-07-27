@@ -40,18 +40,17 @@ export async function createOrder(rawInput: unknown) {
 
   try {
     const order = await prisma.$transaction(async (tx) => {
-      const variants = await tx.variant.findMany({
+      const products = await tx.product.findMany({
         where: {
-          id: { in: data.items.map((i) => i.variantId) },
+          id: { in: data.items.map((i) => i.productId) },
           isActive: true,
         },
-        include: { product: { select: { name: true } } },
       });
 
-      const variantMap = new Map(variants.map((v) => [v.id, v]));
+      const productMap = new Map(products.map((p) => [p.id, p]));
 
       if (
-        variantMap.size !== new Set(data.items.map((i) => i.variantId)).size
+        productMap.size !== new Set(data.items.map((i) => i.productId)).size
       ) {
         throw new Error("One or more items are no longer available.");
       }
@@ -60,15 +59,15 @@ export async function createOrder(rawInput: unknown) {
       const orderItemsData = [];
 
       for (const item of data.items) {
-        const variant = variantMap.get(item.variantId)!;
-        const unitPrice = variant.price;
+        const product = productMap.get(item.productId)!;
+        const unitPrice = product.price!;
         const totalPrice = unitPrice.mul(item.quantity);
         subtotal = subtotal.add(totalPrice);
 
         orderItemsData.push({
-          variantId: variant.id,
-          productName: variant.product.name,
-          variantName: variant.name,
+          productId: product.id,
+          productName: product.name,
+          variantName: product.name,
           unitPrice,
           totalPrice,
           quantity: item.quantity,
@@ -135,18 +134,18 @@ export async function createOrder(rawInput: unknown) {
       });
 
       for (const item of data.items) {
-        const updated = await tx.variant.updateMany({
+        const updated = await tx.product.updateMany({
           where: {
-            id: item.variantId,
+            id: item.productId,
             stock: { gte: item.quantity },
           },
           data: { stock: { decrement: item.quantity } },
         });
 
         if (updated.count === 0) {
-          const variant = variantMap.get(item.variantId);
+          const product = productMap.get(item.productId);
           throw new Error(
-            `"${variant?.name ?? item.variantId}" just went out of stock. Please update your cart.`,
+            `"${product?.name ?? item.productId}" just went out of stock. Please update your cart.`,
           );
         }
       }

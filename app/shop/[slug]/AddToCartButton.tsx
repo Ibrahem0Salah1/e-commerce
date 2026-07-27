@@ -10,29 +10,21 @@ import { useState } from "react";
 
 export function AddToCartButton({ product }: { product: ProductDetail }) {
   const { addItem } = useCart();
-  const [selectedVariantId, setSelectedVariantId] = useState(
-    product.variants[0]?.id ?? "",
-  );
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
 
-  const selectedVariant = product.variants.find(
-    (v) => v.id === selectedVariantId,
-  );
-  const outOfStock = selectedVariant ? selectedVariant.stock <= 0 : true;
-  const price = selectedVariant?.price ?? product.basePrice;
+  const outOfStock = product.stock != null ? product.stock <= 0 : false;
+  const price = product.price;
 
   const handleAddToCart = () => {
-    if (!selectedVariant || outOfStock) return;
+    if (outOfStock) return;
     for (let i = 0; i < quantity; i++) {
       addItem({
-        variantId: selectedVariant.id,
         productId: product.id,
         slug: product.slug,
         name: product.name,
-        price: selectedVariant.price,
+        price: price,
         image: product.images[0] ?? "",
-        variantName: selectedVariant.name,
       });
     }
     setAdded(true);
@@ -42,39 +34,6 @@ export function AddToCartButton({ product }: { product: ProductDetail }) {
 
   return (
     <div className="space-y-4">
-      {product.variants.length > 1 && (
-        <div>
-          <p className="mb-2 text-sm font-medium text-foreground">Variant</p>
-          <div className="flex flex-wrap gap-2">
-            {product.variants.map((variant) => (
-              <button
-                key={variant.id}
-                onClick={() => {
-                  setSelectedVariantId(variant.id);
-                  setQuantity(1);
-                }}
-                disabled={variant.stock <= 0}
-                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
-                  selectedVariantId === variant.id
-                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
-                    : "border-border text-foreground hover:border-foreground/40"
-                } ${variant.stock <= 0 ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
-              >
-                {variant.name}
-                {variant.stock > 0 && variant.stock <= 5 && (
-                  <span className="ml-1.5 text-xs text-muted-foreground">
-                    (only {variant.stock} left)
-                  </span>
-                )}
-                {variant.stock <= 0 && (
-                  <span className="ml-1.5 text-xs text-muted-foreground">Out of stock</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <Separator />
 
       <div className="flex items-center justify-between">
@@ -114,7 +73,7 @@ export function AddToCartButton({ product }: { product: ProductDetail }) {
       <Button
         size="lg"
         className="w-full cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-        disabled={outOfStock || !selectedVariant}
+        disabled={outOfStock}
         onClick={handleAddToCart}
       >
         <ShoppingCart

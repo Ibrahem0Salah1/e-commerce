@@ -27,9 +27,9 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     filters.sort === "price_asc"
-      ? { basePrice: "asc" }
+      ? { price: "asc" }
       : filters.sort === "price_desc"
-        ? { basePrice: "desc" }
+        ? { price: "desc" }
         : filters.sort === "name"
           ? { name: "asc" }
           : { createdAt: "desc" };
@@ -46,7 +46,7 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
   ]);
 
   const data = products.map(
-    ({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
+    ({ reviews, _count, price, stock, description, family, ...rest }) => {
       const avgRating =
         reviews.length > 0
           ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -57,9 +57,8 @@ async function queryProducts(filters: ProductFilters): Promise<ProductsResult> {
         category: family?.category ?? null,
         family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
         description: description ?? [],
-        basePrice: Number(basePrice),
-        variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
-        variantCount: _count.variants,
+        price: Number(price),
+        stock: Number(stock),
         reviewCount: _count.reviews,
         rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
       };
@@ -119,22 +118,25 @@ export const getProductBySlug = unstable_cache(
     const avgRating =
       product.reviews.length > 0
         ? Math.round(
-            (product.reviews.reduce((sum, r) => sum + r.rating, 0) /
-              product.reviews.length) *
-              10,
-          ) / 10
+          (product.reviews.reduce((sum, r) => sum + r.rating, 0) /
+            product.reviews.length) *
+          10,
+        ) / 10
         : null;
 
-    const { family, ...productData } = product;
+    const { family, attributeValues, ...productData } = product;
 
     return {
       ...productData,
       category: family?.category ?? null,
       family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
-      basePrice: Number(product.basePrice),
-      variants: product.variants.map((v) => ({
-        ...v,
-        price: Number(v.price),
+      price: Number(product.price),
+      stock: Number(product.stock),
+      attributes: attributeValues.map((av) => ({
+        typeName: av.attributeType.name,
+        typeSlug: av.attributeType.slug,
+        value: av.attributeValue.value,
+        valueSlug: av.attributeValue.slug,
       })),
       specs: product.specGroups,
       reviewCount: product._count.reviews,
@@ -156,7 +158,7 @@ export const getAllProducts = unstable_cache(
     });
 
     return products.map(
-      ({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
+      ({ reviews, _count, price, stock, description, family, ...rest }) => {
         const avgRating =
           reviews.length > 0
             ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -167,9 +169,8 @@ export const getAllProducts = unstable_cache(
           category: family?.category ?? null,
           family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
           description: description ?? [],
-          basePrice: Number(basePrice),
-          variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
-          variantCount: _count.variants,
+          price: Number(price),
+          stock: Number(stock),
           reviewCount: _count.reviews,
           rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
         };
@@ -192,7 +193,7 @@ export const getBestsellerProducts = unstable_cache(
     });
 
     return products.map(
-      ({ reviews, _count, variants, basePrice, description, family, ...rest }) => {
+      ({ reviews, _count, price, stock, description, family, ...rest }) => {
         const avgRating =
           reviews.length > 0
             ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
@@ -203,9 +204,8 @@ export const getBestsellerProducts = unstable_cache(
           category: family?.category ?? null,
           family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
           description: description ?? [],
-          basePrice: Number(basePrice),
-          variants: variants.map((v) => ({ ...v, price: Number(v.price) })),
-          variantCount: _count.variants,
+          price: Number(price),
+          stock: Number(stock),
           reviewCount: _count.reviews,
           rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
         };
@@ -215,4 +215,3 @@ export const getBestsellerProducts = unstable_cache(
   ["products-bestseller"],
   { revalidate: 3600, tags: ["products"] },
 );
-
