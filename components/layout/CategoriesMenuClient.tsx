@@ -5,8 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { getCategoriesWithFamilies, getBrands } from "@/lib/categories/queries";
-
+import { getCategoriesWithFamilies } from "@/lib/categories/queries";
+import { getBrands } from "@/lib/brands/queries";
 type Category = Awaited<ReturnType<typeof getCategoriesWithFamilies>>[number];
 type Brand = Awaited<ReturnType<typeof getBrands>>[number];
 

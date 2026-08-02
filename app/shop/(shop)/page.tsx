@@ -1,4 +1,5 @@
-import { getBrands, getCategoriesWithFamilies } from "@/lib/categories/queries";
+import { getCategoriesWithFamilies } from "@/lib/categories/queries";
+import { getBrands } from "@/lib/brands/queries";
 import { ProductsListServer } from "@/components/shop/ProductsListServer";
 import { ShopBreadcrumbs } from "@/components/shop/Breadcrumbs";
 import { SearchInput } from "@/components/shop/SearchInput";

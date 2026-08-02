@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils/cn";
 import { SessionUser } from "@/lib/types";
 import { signOutAction } from "@/lib/auth/actions";
 import type { getCategoriesWithFamilies } from "@/lib/categories/queries";
-import type { getBrands } from "@/lib/categories/queries";
+import type { getBrands } from "@/lib/brands/queries";
 
 type Category = Awaited<ReturnType<typeof getCategoriesWithFamilies>>[number];
 type Brand = Awaited<ReturnType<typeof getBrands>>[number];
