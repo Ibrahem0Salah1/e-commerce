@@ -8,46 +8,73 @@ import {
   addProductSchema,
   updateProductSchema,
 } from "@/lib/validations";
-
+ /**
+ * Create product + attributes + specification groups in one transaction.
+ */
 export async function addProductAndInvalidate(raw: unknown) {
   await requireAdmin();
 
   const data = addProductSchema.parse(raw);
 
-  const product = await prisma.product.create({
-    data: {
-      name: data.name,
-      slug: data.slug,
-      description: data.description,
-      madeIn: data.madeIn,
-      price: data.price,
-      stock: data.stock,
-      ...(data.sku ? { sku: data.sku } : {}),
-      images: data.images,
-      isActive: data.isActive,
-      archived: data.archived,
-      featured: data.featured,
-      bestSeller: data.bestSeller,
-      category: { connect: { id: data.categoryId } },
-      ...(data.familyId ? { family: { connect: { id: data.familyId } } } : {}),
-      ...(data.brandId ? { brand: { connect: { id: data.brandId } } } : {}),
-    },
+  const product = await prisma.$transaction(async (tx) => {
+    const created = await tx.product.create({
+      data: {
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        madeIn: data.madeIn,
+        price: data.price,
+        stock: data.stock,
+        ...(data.sku ? { sku: data.sku } : {}),
+        images: data.images,
+        isActive: data.isActive,
+        archived: data.archived,
+        featured: data.featured,
+        bestSeller: data.bestSeller,
+        category: { connect: { id: data.categoryId } },
+        ...(data.familyId
+          ? { family: { connect: { id: data.familyId } } }
+          : {}),
+        ...(data.brandId ? { brand: { connect: { id: data.brandId } } } : {}),
+      },
+    });
+
+    if (data.attributes && data.attributes.length > 0) {
+      await tx.productAttributeValue.createMany({
+        data: data.attributes.map((attr) => ({
+          productId: created.id,
+          attributeTypeId: attr.attributeTypeId,
+          attributeValueId: attr.attributeValueId,
+        })),
+      });
+    }
+
+    for (const group of data.specGroups ?? []) {
+      if (!group.specs.length) continue;
+
+      await tx.specificationGroup.create({
+        data: {
+          productId: created.id,
+          name: group.name,
+          position: group.position,
+          specs: {
+            create: group.specs.map((s) => ({
+              key: s.key,
+              value: s.value,
+              position: s.position,
+            })),
+          },
+        },
+      });
+    }
+
+    return created;
   });
 
-  if (data.attributes && data.attributes.length > 0) {
-    await prisma.productAttributeValue.createMany({
-      data: data.attributes.map((attr) => ({
-        productId: product.id,
-        attributeTypeId: attr.attributeTypeId,
-        attributeValueId: attr.attributeValueId,
-      })),
-    });
-  }
-
   revalidateTag("products", "max");
-
   return product;
 }
+
 export async function updateProductAndInvalidate(
   productId: string,
   raw: unknown

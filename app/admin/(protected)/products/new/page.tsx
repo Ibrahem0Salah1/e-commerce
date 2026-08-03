@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import prisma from "@/lib/config/prisma";
 import { NewProductForm } from "@/components/admin/NewProductForm";
 import { AdminRules } from "@/components/admin/AdminRules";
-
 export default async function NewProductPage() {
   const [categories, brands, attributeTypes] = await Promise.all([
     prisma.category.findMany({
