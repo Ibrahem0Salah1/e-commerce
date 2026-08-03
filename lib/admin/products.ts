@@ -3,6 +3,7 @@ import prisma from "@/lib/config/prisma";
 import type { AdminProductDetail, ProductListItem } from "@/lib/types";
 import { productListSelect } from "@/lib/products/selects";
 import { adminProductDetailSelect } from "@/lib/admin/selects";
+import { plain } from "../utils/serialize";
 
 export async function getAdminAllProducts(): Promise<ProductListItem[]> {
   console.log("[QUERY] getAdminAllProducts - hitting DB");
@@ -41,11 +42,13 @@ export async function getAdminProductBySlug(
 
   if (!product) return null;
 
-  return {
+  const result= {
     ...product,
     category: product.family?.category ?? null,
     family: product.family ? { id: product.family.id, name: product.family.name, slug: product.family.slug } : null,
     price: Number(product.price),
     stock: Number(product.stock),
   };
+
+  return plain(result);
 }

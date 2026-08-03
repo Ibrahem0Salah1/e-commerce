@@ -63,6 +63,20 @@ export const checkoutSchema = z.object({
 });
 
 
+/* ───────────────────────────────────────────────
+   Spec helpers (shared by client + server)
+   ─────────────────────────────────────────────── */
+const specRowFormSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  position: z.number().int().min(0),
+});
+
+const specGroupFormSchema = z.object({
+  name: z.string(),
+  position: z.number().int().min(0),
+  specs: z.array(specRowFormSchema),
+});
 
 
 /* ───────────────────────────────────────────────
@@ -88,6 +102,7 @@ export const addProductFormSchema = z.object({
   unitValueId: z.string(),
   colorValueId: z.string(),
   shadeValueId: z.string(),
+  specGroups: z.array(specGroupFormSchema),
 });
 
 
@@ -112,7 +127,6 @@ export const editProductFormSchema = z.object({
   bestSeller: z.boolean(),
 });
 
-// export type EditProductForm = z.infer<typeof editProductFormSchema>;
 
 /* ───────────────────────────────────────────────
    Server schemas (arrays + nulls)
@@ -143,11 +157,27 @@ export const addProductSchema = z.object({
     .optional()
     .refine(
       (attrs) =>
-        !attrs || new Set(attrs.map((a) => a.attributeTypeId)).size === attrs.length,
+        !attrs ||
+        new Set(attrs.map((a) => a.attributeTypeId)).size === attrs.length,
       "Each attribute type can only have one value per product"
     ),
+  specGroups: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        position: z.number().int().min(0),
+        specs: z.array(
+          z.object({
+            key: z.string().min(1),
+            value: z.string().min(1),
+            position: z.number().int().min(0),
+          })
+        ),
+      })
+    )
+    .optional()
+    .default([]),
 });
-
 export const updateProductSchema = z.object({
   name: z.string().min(1),
   description: z.array(z.string()),
@@ -164,7 +194,7 @@ export const updateProductSchema = z.object({
   stock: z.number().int().min(0),
   sku: z.string().optional(),
 });
-// export type EditProductForm = z.infer<typeof updateProductSchema>;
+
 export const purchaseInvoiceLineSchema = z.object({
   productId: z.string().min(1, "Select a product"),
   costPrice: z.coerce.number().positive("Cost price must be greater than 0"),
