@@ -1,6 +1,9 @@
 import type { ProductListRaw, ProductDetailRaw } from "@/lib/products/selects";
 import type { AdminProductDetailRaw } from "@/lib/admin/selects";
 import type { TestimonialRaw } from "@/lib/reviews/selects";
+import type { CategoryListRaw, CategoryDetailRaw, CategoryOptionRaw, CategoryWithFamiliesRaw } from "@/lib/categories/selects";
+import type { FamilyListRaw, FamilyDetailRaw } from "@/lib/families/selects";
+import type { BrandListRaw, BrandDetailRaw } from "@/lib/brands/selects";
 
 export type {
   OtpForm,
@@ -88,3 +91,17 @@ export type ProductsResult = {
 export type Testimonial = Omit<TestimonialRaw, "createdAt"> & {
   createdAt: string;
 };
+
+/* ── Category types ── */
+export type CategoryListItem = CategoryListRaw;
+export type CategoryDetail = CategoryDetailRaw;
+export type CategoryOption = CategoryOptionRaw;
+export type CategoryWithFamilies = CategoryWithFamiliesRaw;
+
+/* ── Family types ── */
+export type FamilyListItem = FamilyListRaw;
+export type FamilyDetail = FamilyDetailRaw;
+
+/* ── Brand types ── */
+export type BrandListItem = BrandListRaw;
+export type BrandDetail = BrandDetailRaw;
