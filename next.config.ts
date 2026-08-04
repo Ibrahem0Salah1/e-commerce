@@ -1,9 +1,27 @@
 import type { NextConfig } from "next";
 
+
+
 const nextConfig: NextConfig = {
   images: {
+    // Cache optimized images for 31 days
+    minimumCacheTTL: 2678400,
+
+    // Only generate WebP versions
+    formats: ["image/webp"],
+
+    // Only allow these quality levels
+    qualities: [60, 75],
+
+    // Sizes your app is likely to actually use
+    deviceSizes: [640, 768, 1024, 1280, 1536],
+
+    // Small UI image sizes
+    imageSizes: [32, 48, 64, 96, 128, 256],
+
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
+
     remotePatterns: [
       {
         protocol: "https",
@@ -32,6 +50,7 @@ const nextConfig: NextConfig = {
     ],
   },
 };
+
 
 // module.exports = {
 //   images: {
