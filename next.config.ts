@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
+  partialPrefetching: true,
   images: {
     // Cache optimized images for 31 days
     minimumCacheTTL: 2678400,

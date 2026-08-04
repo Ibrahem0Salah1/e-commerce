@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/config/prisma";
 
-export const runtime = "nodejs";
+// export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");

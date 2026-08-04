@@ -6,10 +6,12 @@ import { createSearchParamsCache } from "nuqs/server";
 const cache = createSearchParamsCache(filtersParsers);
 
 export async function GET(request: NextRequest) {
+  // Read searchParams outside try/catch so the prerender bailout can propagate
+  const filters = cache.parse(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
+
   try {
-    const filters = cache.parse(
-      Object.fromEntries(request.nextUrl.searchParams),
-    );
     const data = await getProductsServer(filters);
     return NextResponse.json(data);
   } catch (error) {
