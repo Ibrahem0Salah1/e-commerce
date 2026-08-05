@@ -74,6 +74,7 @@ export async function addProductAndInvalidate(raw: unknown) {
   });
 
   await invalidatePattern("products:*");
+  //
   await invalidateCache(`product:detail:${product.slug}`);
 
   return product;
