@@ -77,6 +77,7 @@ export async function addProductAndInvalidate(raw: unknown) {
   //
   await invalidateCache(`product:detail:${product.slug}`);
 
+  revalidateTag("products", "max");
   return product;
 }
 

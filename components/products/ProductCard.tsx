@@ -53,11 +53,7 @@ export function ProductCard({
         setAdded(true);
     };
 
-    useEffect(() => {
-        if (!added) return;
-        const t = setTimeout(() => setAdded(false), 1400);
-        return () => clearTimeout(t);
-    }, [added]);
+    
 
     return (
         <Link href={`/shop/${product.slug}`} className="group block h-full">
@@ -67,10 +63,11 @@ export function ProductCard({
                     <Image
                         src={product.images[0] ?? "/zz.svg"}
                         alt={product.name}
-                        fill
-                        priority={priority}
-                        className="object-contain p-1 transition-transform duration-500 group-hover:scale-[1.03]"
-                        sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 300px"
+                        width={350}
+                        className="object-cover"
+                        height={350}
+                        quality={75}
+                        sizes="(max-width:768px) 50vw, (max-width:1200px) 33vw, 25vw"
                     />
 
                     {product.brand && (

@@ -34,7 +34,7 @@ export default function UserMenu({ user }: { user: SessionUser | null }) {
             <DropdownMenuTrigger asChild>
                 <button className="relative h-9 w-9 overflow-hidden rounded-full border border-border transition-colors hover:border-primary">
                     {user.image ? (
-                        <Image src={user.image} alt={user.name} fill className="object-cover" />
+                        <Image src={user.image} alt={user.name} width={40} height={40} quality={60} className="object-cover" />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center bg-primary">
                             <span className="text-xs font-semibold text-primary-foreground">
