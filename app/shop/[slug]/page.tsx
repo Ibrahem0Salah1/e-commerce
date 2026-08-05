@@ -14,6 +14,8 @@ import { formatNumber } from "@/lib/utils/format";
 import { AddToCartButton } from "./AddToCartButton";
 import { ImageGallery } from "./ImageGallery";
 import { TruncatedDescription } from "./TruncatedDescription";
+import { getProductBySlugWithInventory } from "@/lib/products/queries";
+
 
 export async function generateMetadata({
   params,
@@ -21,8 +23,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
-  if (!product) return {};
+  const product = await getProductBySlugWithInventory(slug);
+
+  if (!product) return notFound();
+
   return {
     title: `${product.name} | MDS Dental Store`,
     description: product.description?.[0] ?? `Buy ${product.name} from MDS`,
@@ -33,14 +37,16 @@ export async function generateMetadata({
   };
 }
 
+
 export default async function ProductPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
-  if (!product) notFound();
+  const product = await getProductBySlugWithInventory(slug);
+
+  if (!product) return notFound();
 
   const description =
     product.description && product.description.length > 0

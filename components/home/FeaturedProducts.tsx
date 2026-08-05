@@ -1,12 +1,21 @@
+// components/home/FeaturedProducts.tsx
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getFeaturedProducts } from "@/lib/products/queries";
+import { getFeaturedProducts, getProductsInventory, mergeInventoryIntoProducts } from "@/lib/products/queries";
 import { CardsSlider } from "@/components/home/CardsSlider";
 
 export async function FeaturedProducts() {
-  const products = await getFeaturedProducts();
+  // 1. Cached display data (no stock)
+  const displayProducts = await getFeaturedProducts();
 
-  if (products.length === 0) return null;
+  if (displayProducts.length === 0) return null;
+
+  // 2. Fresh inventory from DB
+  const productIds = displayProducts.map((p) => p.id);
+  const inventoryMap = await getProductsInventory(productIds);
+
+  // 3. Merge so ProductCard gets its required `stock` field
+  const products = mergeInventoryIntoProducts(displayProducts, inventoryMap);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-b border-border/10">

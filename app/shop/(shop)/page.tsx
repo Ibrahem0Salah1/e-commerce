@@ -1,3 +1,4 @@
+// app/shop/page.tsx
 import { getCategoriesWithFamilies } from "@/lib/categories/queries";
 import { getBrands } from "@/lib/brands/queries";
 import { ProductsListServer } from "@/components/shop/ProductsListServer";
@@ -7,7 +8,7 @@ import { FilterMenu } from "@/components/shop/FilterMenu";
 import { Suspense } from "react";
 import { ProductsSkeleton } from "@/components/products/ProductsSkeleton";
 import { searchParamsCache } from "@/lib/products/filters";
-import { getProductsServer } from "@/lib/products/queries";
+import { getProductsServerWithInventory } from "@/lib/products/queries"; // ← CHANGED
 import type { SearchParams } from "nuqs/server";
 
 export default async function ShopPage({
@@ -20,8 +21,9 @@ export default async function ShopPage({
     getBrands(),
     searchParamsCache.parse(searchParams),
   ]);
-  const productsPromise = getProductsServer(filters);
 
+  // ← CHANGED: use the wrapper that merges fresh inventory
+  const productsPromise = getProductsServerWithInventory(filters);
 
   return (
     <div className="relative space-y-4">
@@ -33,10 +35,7 @@ export default async function ShopPage({
         </div>
       </div>
       <Suspense fallback={<ProductsSkeleton />}>
-        <ProductsListServer
-          productsPromise={productsPromise}
-        // pass categories/brands for breadcrumbs etc
-        />
+        <ProductsListServer productsPromise={productsPromise} />
       </Suspense>
     </div>
   );

@@ -1,22 +1,27 @@
+// components/home/BestsellerProducts.tsx
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getBestsellerProducts } from "@/lib/products/queries";
+import { getBestsellerProducts, getProductsInventory, mergeInventoryIntoProducts } from "@/lib/products/queries";
 import { CardsSlider } from "@/components/home/CardsSlider";
 
 export async function BestsellerProducts() {
-  const products = await getBestsellerProducts();
+  const displayProducts = await getBestsellerProducts();
 
-  if (products.length === 0) return null;
+  if (displayProducts.length === 0) return null;
+
+  const productIds = displayProducts.map((p) => p.id);
+  const inventoryMap = await getProductsInventory(productIds);
+  const products = mergeInventoryIntoProducts(displayProducts, inventoryMap);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-b border-border/10">
       <div className="mb-8 flex items-end justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Bestsellers
+            Best Sellers
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Our most popular supplies, chosen repeatedly by dental professionals
+            Our most popular medical supplies
           </p>
         </div>
         <Button

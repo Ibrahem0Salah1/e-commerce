@@ -1,8 +1,31 @@
 import "server-only";
 import prisma from "@/lib/config/prisma";
+import { Prisma } from "@prisma/client";
 import type { AdminProductDetail, ProductListItem } from "@/lib/types";
-import { productListSelect } from "@/lib/products/selects";
-import { adminProductDetailSelect } from "@/lib/admin/selects";
+// import { adminProductDetailSelect } from "@/lib/admin/selects";
+export const productListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  stock: true, 
+  sku: true,
+  images: true,
+  featured: true,
+  isActive: true,
+  family: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
+  },
+  brand: { select: { id: true, name: true, slug: true, logo: true } },
+  reviews: { select: { rating: true } },
+  _count: { select: { reviews: true } },
+} satisfies Prisma.ProductSelect;
 
 export async function getAdminAllProducts(): Promise<ProductListItem[]> {
   console.log("[QUERY] getAdminAllProducts - hitting DB");
@@ -31,6 +54,45 @@ export async function getAdminAllProducts(): Promise<ProductListItem[]> {
   });
 }
 
+//selects 
+export const adminProductDetailSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  madeIn: true,
+  price: true,
+  stock: true,
+  sku: true,
+  images: true,
+  featured: true,
+  bestSeller: true,
+  isActive: true,
+  archived: true,
+  family: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
+  },
+  brand: { select: { id: true, name: true, slug: true, logo: true } },
+  specGroups: {
+    orderBy: { position: "asc" as const },
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      specs: {
+        orderBy: { position: "asc" as const },
+        select: { id: true, key: true, value: true, position: true },
+      },
+    },
+  },
+  _count: { select: { reviews: true } },
+} satisfies Prisma.ProductSelect;
+//the function
 export async function getAdminProductBySlug(
   slug: string,
 ): Promise<AdminProductDetail | null> {
