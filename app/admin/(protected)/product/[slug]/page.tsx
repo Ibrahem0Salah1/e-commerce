@@ -11,14 +11,14 @@ import { EditProductDialog } from "@/components/admin/EditProductDialog";
 import { formatNumber } from "@/lib/utils/format";
 import prisma from "@/lib/config/prisma";
 import type { AdminProductDetail } from "@/lib/types";
-
+import { plain } from "@/lib/utils/serialize";
 type Props = {
   params: Promise<{ slug: string }>;
 };
 
 export default async function AdminProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product: AdminProductDetail | null = await getAdminProductBySlug(slug);
+  const product: AdminProductDetail | null = plain(await getAdminProductBySlug(slug));;
 
   if (!product) notFound();
 
