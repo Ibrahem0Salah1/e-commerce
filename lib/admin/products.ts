@@ -1,7 +1,8 @@
+// lib/admin/products.ts
 import "server-only";
 import prisma from "@/lib/config/prisma";
 import type { AdminProductDetail, ProductListItem } from "@/lib/types";
-import { productListSelect } from "@/lib/products/selects";
+import { adminProductsListSelect } from "@/lib/admin/selects";
 import { adminProductDetailSelect } from "@/lib/admin/selects";
 import { plain } from "../utils/serialize";
 
@@ -10,13 +11,13 @@ export async function getAdminAllProducts(): Promise<ProductListItem[]> {
 
   const products = await prisma.product.findMany({
     orderBy: { name: "asc" },
-    select: productListSelect,
+    select: adminProductsListSelect,
   });
 
-  return products.map(({ reviews, _count, price, stock, description, family, ...rest }) => {
+  return products.map(({ reviews, _count, price, description, family, stock, sku, ...rest }) => {
     const avgRating =
       reviews.length > 0
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        ? reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviews.length
         : null;
 
     return {
@@ -25,7 +26,8 @@ export async function getAdminAllProducts(): Promise<ProductListItem[]> {
       family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
       description: description ?? [],
       price: Number(price),
-      stock: Number(stock),
+      stock: stock !== undefined ? Number(stock) : null,
+      sku: sku ?? null,
       reviewCount: _count.reviews,
       rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
     };
@@ -42,7 +44,7 @@ export async function getAdminProductBySlug(
 
   if (!product) return null;
 
-  const result= {
+  const result = {
     ...product,
     category: product.family?.category ?? null,
     family: product.family ? { id: product.family.id, name: product.family.name, slug: product.family.slug } : null,

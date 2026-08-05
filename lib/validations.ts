@@ -165,18 +165,17 @@ export const addProductSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1),
-        position: z.number().int().min(0),
+        position: z.number().int(),
         specs: z.array(
           z.object({
             key: z.string().min(1),
             value: z.string().min(1),
-            position: z.number().int().min(0),
+            position: z.number().int(),
           })
         ),
       })
     )
-    .optional()
-    .default([]),
+    .optional(),
 });
 export const updateProductSchema = z.object({
   name: z.string().min(1),

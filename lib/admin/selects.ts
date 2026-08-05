@@ -1,5 +1,33 @@
 import { Prisma } from "@prisma/client";
 
+export const adminProductsListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  stock: true,
+  sku: true,
+  images: true,
+  featured: true,
+  isActive: true,
+  family: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: { select: { id: true, name: true, slug: true } },
+    },
+  },
+  brand: { select: { id: true, name: true, slug: true, logo: true } },
+  reviews: { select: { rating: true } },
+  _count: { select: { reviews: true } },
+} satisfies Prisma.ProductSelect;
+
+export type AdminProductListRaw = Prisma.ProductGetPayload<{
+  select: typeof adminProductsListSelect;
+}>;
+
 export const adminProductDetailSelect = {
   id: true,
   name: true,
@@ -41,3 +69,4 @@ export const adminProductDetailSelect = {
 export type AdminProductDetailRaw = Prisma.ProductGetPayload<{
   select: typeof adminProductDetailSelect;
 }>;
+

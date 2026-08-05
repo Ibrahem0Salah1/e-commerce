@@ -1,22 +1,30 @@
+// lib/restock/actions.ts
 "use server";
 
-import { revalidateTag } from "next/cache";
 import prisma from "@/lib/config/prisma";
 import { requireAdmin } from "@/lib/auth/authz";
 import { createPurchaseInvoiceSchema } from "@/lib/validations";
+import { invalidateCache, invalidatePattern } from "@/lib/config/redis";
 
 export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
   await requireAdmin();
 
   const data = createPurchaseInvoiceSchema.parse(raw);
 
+  // ── FIX #1: Pre-fetch slugs to avoid N+1 after transaction ──
+  const products = await prisma.product.findMany({
+    where: { id: { in: data.lines.map((l) => l.productId) } },
+    select: { id: true, slug: true },
+  });
+  const slugById = new Map(products.map((p) => [p.id, p.slug]));
+
   const totalCost = data.lines.reduce(
     (sum, line) => sum + line.costPrice * line.quantityAdded,
     0,
   );
 
-  const result = await prisma.$transaction(async (tx) => {
-    const invoice = await tx.purchaseInvoice.create({
+  const invoice = await prisma.$transaction(async (tx) => {
+    const created = await tx.purchaseInvoice.create({
       data: {
         supplierName: data.supplierName || null,
         invoiceNumber: data.invoiceNumber || null,
@@ -33,16 +41,16 @@ export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
       await tx.product.update({
         where: { id: line.productId },
         data: {
-          costPrice: line.costPrice,         // ← live cost
-          marginPercent: line.marginPercent, // ← live margin
-          price: sellingPrice,               // ← live selling price
+          costPrice: line.costPrice,
+          marginPercent: line.marginPercent,
+          price: sellingPrice,
           stock: { increment: line.quantityAdded },
         },
       });
 
       await tx.restockEntry.create({
         data: {
-          invoiceId: invoice.id,
+          invoiceId: created.id,
           productId: line.productId,
           costPrice: line.costPrice,
           marginPercent: line.marginPercent,
@@ -52,9 +60,29 @@ export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
       });
     }
 
-    return invoice;
+    return created;
   });
 
-  revalidateTag("products", "max");
-  return result;
+  // ── FIX #2: Cache invalidation is "best effort" ──
+  // If Redis is down, the restock MUST still succeed.
+  // Stale cache auto-expires via TTL anyway.
+  try {
+    const invalidationPromises: Promise<void>[] = [];
+
+    for (const line of data.lines) {
+      const slug = slugById.get(line.productId);
+      if (slug) {
+        invalidationPromises.push(invalidateCache(`product:detail:${slug}`));
+      }
+    }
+
+    // Broad invalidation: price changed, so ALL list pages are stale
+    invalidationPromises.push(invalidatePattern("products:*"));
+
+    await Promise.all(invalidationPromises);
+  } catch (err) {
+    console.error("[Restock] Cache invalidation failed (non-critical):", err);
+  }
+
+  return invoice;
 }

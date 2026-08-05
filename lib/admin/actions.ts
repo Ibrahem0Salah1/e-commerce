@@ -1,6 +1,6 @@
+// lib/admin/actions.ts
 "use server";
 
-import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/config/prisma";
 import { requireAdmin } from "@/lib/auth/authz";
@@ -8,7 +8,9 @@ import {
   addProductSchema,
   updateProductSchema,
 } from "@/lib/validations";
- /**
+import { invalidateCache, invalidatePattern } from "@/lib/config/redis";
+
+/**
  * Create product + attributes + specification groups in one transaction.
  */
 export async function addProductAndInvalidate(raw: unknown) {
@@ -71,23 +73,24 @@ export async function addProductAndInvalidate(raw: unknown) {
     return created;
   });
 
-  revalidateTag("products", "max");
+  await invalidatePattern("products:*");
+  //
+  await invalidateCache(`product:detail:${product.slug}`);
   return product;
 }
 
 export async function updateProductAndInvalidate(
   productId: string,
-  raw: unknown
+  raw: unknown,
 ) {
   await requireAdmin();
 
   const data = updateProductSchema.parse(raw);
 
-  await prisma.product.update({
+  const updated = await prisma.product.update({
     where: { id: productId },
     data: {
       name: data.name,
-      // slug intentionally omitted — never changed after creation
       description: data.description,
       madeIn: data.madeIn,
       images: data.images,
@@ -104,18 +107,23 @@ export async function updateProductAndInvalidate(
     },
   });
 
-  revalidateTag("products", "max");
+  await invalidateCache(`product:detail:${updated.slug}`);
+  await invalidatePattern("products:*");
+
+  return updated;
 }
-//delete
+
 export async function deleteProductAndInvalidate(productId: string) {
   await requireAdmin();
 
-  await prisma.product.update({
+  const product = await prisma.product.update({
     where: { id: productId },
     data: { isActive: false, archived: true },
   });
 
-  revalidateTag("products", "max");
+  await invalidateCache(`product:detail:${product.slug}`);
+  await invalidatePattern("products:*");
+
   redirect("/admin/products");
 }
 
@@ -124,7 +132,7 @@ export async function toggleProductActiveAndInvalidate(productId: string) {
 
   const product = await prisma.product.findUniqueOrThrow({
     where: { id: productId },
-    select: { isActive: true },
+    select: { isActive: true, slug: true },
   });
 
   await prisma.product.update({
@@ -132,5 +140,6 @@ export async function toggleProductActiveAndInvalidate(productId: string) {
     data: { isActive: !product.isActive },
   });
 
-  revalidateTag("products", "max");
+  await invalidateCache(`product:detail:${product.slug}`);
+  await invalidatePattern("products:*");
 }

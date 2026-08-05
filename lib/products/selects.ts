@@ -1,12 +1,12 @@
 import { Prisma } from "@prisma/client";
 
-export const productListSelect = {
+export const productListDisplaySelect = {
   id: true,
   name: true,
   slug: true,
   description: true,
   price: true,
-  stock: true,
+  // stock: true, not used in cache rn
   sku: true,
   images: true,
   featured: true,
@@ -25,16 +25,16 @@ export const productListSelect = {
 } satisfies Prisma.ProductSelect;
 
 export type ProductListRaw = Prisma.ProductGetPayload<{
-  select: typeof productListSelect;
+  select: typeof productListDisplaySelect;
 }>;
 
-export const productDetailSelect = {
+export const productDetailDisplaySelect = {
   id: true,
   name: true,
   slug: true,
   description: true,
   price: true,
-  stock: true,
+  // stock: true, not used in cache rn. comes fresh from db
   sku: true,
   images: true,
   featured: true,
@@ -80,5 +80,5 @@ export const productDetailSelect = {
 } satisfies Prisma.ProductSelect;
 
 export type ProductDetailRaw = Prisma.ProductGetPayload<{
-  select: typeof productDetailSelect;
+  select: typeof productDetailDisplaySelect;
 }>;
