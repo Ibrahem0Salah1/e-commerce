@@ -146,6 +146,21 @@ export const addProductSchema = z.object({
         !attrs || new Set(attrs.map((a) => a.attributeTypeId)).size === attrs.length,
       "Each attribute type can only have one value per product"
     ),
+  specGroups: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        position: z.number().int(),
+        specs: z.array(
+          z.object({
+            key: z.string().min(1),
+            value: z.string().min(1),
+            position: z.number().int(),
+          })
+        ),
+      })
+    )
+    .optional(),
 });
 
 export const updateProductSchema = z.object({
