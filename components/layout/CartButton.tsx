@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
@@ -19,6 +20,17 @@ import { formatNumber } from "@/lib/utils/format";
 export function CartButton() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart } =
     useCart();
+  const [confirmingClear, setConfirmingClear] = useState(false);
+
+  const handleClearAll = () => {
+    if (confirmingClear) {
+      setConfirmingClear(false);
+      clearCart();
+      return;
+    }
+    setConfirmingClear(true);
+    window.setTimeout(() => setConfirmingClear(false), 3000);
+  };
 
   return (
     <Sheet>
@@ -84,11 +96,15 @@ export function CartButton() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearCart}
-                className="h-7 gap-1.5 rounded-sm px-2 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleClearAll}
+                className={`h-7 gap-1.5 rounded-sm px-2 text-xs font-medium ${
+                  confirmingClear
+                    ? "text-destructive bg-destructive/10 hover:bg-destructive/15 hover:text-destructive"
+                    : "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                }`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Clear all
+                {confirmingClear ? "Confirm clear?" : "Clear all"}
               </Button>
             </div>
 

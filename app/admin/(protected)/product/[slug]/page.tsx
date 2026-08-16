@@ -22,7 +22,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const [categories, brands] = await Promise.all([
+  const [categories, brands, attributeTypes] = await Promise.all([
     prisma.category.findMany({
       select: {
         id: true,
@@ -37,6 +37,19 @@ export default async function AdminProductDetailPage({ params }: Props) {
       orderBy: { name: "asc" },
     }),
     prisma.brand.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
+    prisma.attributeType.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        displayOrder: true,
+        values: {
+          orderBy: { value: "asc" },
+          select: { id: true, value: true, slug: true },
+        },
+      },
+    }),
   ]);
   const description = product.description && product.description.length > 0
     ? [product.description[0]]
@@ -80,6 +93,7 @@ export default async function AdminProductDetailPage({ params }: Props) {
             product={product}
             categories={categories}
             brands={brands}
+            attributeTypes={attributeTypes}
           />
           <form
             action={async () => {

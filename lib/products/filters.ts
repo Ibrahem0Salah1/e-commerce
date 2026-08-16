@@ -28,9 +28,30 @@ export const filtersParsers = {
     clearOnDefault: true,
     scroll: false,
   }),
-  sort: parseAsStringEnum(["price_asc", "price_desc", "name"]).withDefault(
+  bestSeller: parseAsBoolean.withDefault(false).withOptions({
+    clearOnDefault: true,
+    scroll: false,
+  }),
+  inStock: parseAsBoolean.withDefault(false).withOptions({
+    clearOnDefault: true,
+    scroll: false,
+  }),
+  outOfStock: parseAsBoolean.withDefault(false).withOptions({
+    clearOnDefault: true,
+    scroll: false,
+  }),
+  lowStock: parseAsBoolean.withDefault(false).withOptions({
+    clearOnDefault: true,
+    scroll: false,
+  }),
+  sort: parseAsStringEnum([
+    "price_asc",
+    "price_desc",
     "name",
-  ),
+    "newest",
+    "stock_asc",
+    "stock_desc",
+  ]).withDefault("name"),
   page: parseAsInteger
     .withDefault(1)
     .withOptions({ clearOnDefault: true, scroll: true }),

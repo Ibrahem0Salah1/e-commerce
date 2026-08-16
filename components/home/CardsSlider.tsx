@@ -4,16 +4,39 @@ import { useRef, useCallback, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { ProductCard, type ProductListItem } from "@/components/products/ProductCard";
+import { CategoryCard } from "@/components/categories/CategoryCard";
+import { BrandCard } from "@/components/brands/BrandCard";
+import type { CategoryListItem } from "@/lib/categories/queries";
+import type { BrandListItem } from "@/lib/brands/queries";
 
 interface CardsSliderProps {
-  products: ProductListItem[];
+  products?: ProductListItem[];
+  items?: any[];
+  variant?: "product" | "category" | "brand";
+  cardClassName?: string;
 }
 
-export function CardsSlider({ products }: CardsSliderProps) {
+export function CardsSlider({
+  products,
+  items: itemsProp,
+  variant = "product",
+  cardClassName,
+}: CardsSliderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Fallback to products if items is not provided
+  const items: any[] = itemsProp ?? products ?? [];
+
+  // Determine default card width based on variant
+  const defaultCardWidth =
+    variant === "product"
+      ? "w-65 sm:w-70 lg:w-75"
+      : "w-44 sm:w-52 lg:w-56";
+
+  const activeCardClassName = cardClassName ?? defaultCardWidth;
 
   /* ── Calculate pages based on actual layout ── */
   const calculatePages = useCallback(() => {
@@ -28,7 +51,7 @@ export function CardsSlider({ products }: CardsSliderProps) {
     const cardWidth = firstCard.offsetWidth;
     const gap = 16; // gap-4 = 16px
     const cardsPerView = Math.max(1, Math.floor(containerWidth / (cardWidth + gap)));
-    const pages = Math.max(1, Math.ceil(products.length / cardsPerView));
+    const pages = Math.max(1, Math.ceil(items.length / cardsPerView));
 
     setTotalPages(pages);
 
@@ -41,7 +64,7 @@ export function CardsSlider({ products }: CardsSliderProps) {
     const pageWidth = cardsPerView * (cardWidth + gap);
     const currentPage = Math.round(scrollEl.scrollLeft / pageWidth);
     setPage(Math.min(currentPage, pages - 1));
-  }, [products.length]);
+  }, [items.length]);
 
   useEffect(() => {
     calculatePages();
@@ -99,10 +122,10 @@ export function CardsSlider({ products }: CardsSliderProps) {
     [page, totalPages, scrollToPage]
   );
 
-  if (products.length === 0) return null;
+  if (items.length === 0) return null;
 
   return (
-    <div ref={containerRef} className="relative group/slider">
+    <div ref={containerRef} className="relative  group/slider">
       {/* ── Scroll track ── */}
       <div
         ref={scrollRef}
@@ -113,15 +136,25 @@ export function CardsSlider({ products }: CardsSliderProps) {
           WebkitOverflowScrolling: "touch",
         }}
       >
-        {products.map((product, i) => (
-          <div
-            key={product.id}
-            className="snap-start shrink-0 w-65 sm:w-70 lg:w-75"
-            style={{ contentVisibility: "auto" }}
-          >
-            <ProductCard product={product} priority={i < 2} />
-          </div>
-        ))}
+        {items.map((item, i) => {
+          const key = item.id ?? item.slug ?? i;
+
+          return (
+            <div
+              key={key}
+              className={cn("snap-start shrink-0 py-4", activeCardClassName)}
+              style={{ contentVisibility: "auto" }}
+            >
+              {variant === "category" ? (
+                <CategoryCard category={item as CategoryListItem} priority={i < 4} />
+              ) : variant === "brand" ? (
+                <BrandCard brand={item as BrandListItem} priority={i < 4} />
+              ) : (
+                <ProductCard product={item as ProductListItem} priority={i < 2} />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Prev / Next arrows (desktop only) ── */}

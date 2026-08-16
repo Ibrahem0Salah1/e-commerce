@@ -26,7 +26,7 @@ export async function createCategoryAndInvalidate(raw: unknown) {
       name: data.name,
       slug,
       description: data.description || "",
-      image: data.image || "",
+      image: data.image || null,
       isActive: data.isActive,
     },
   });
@@ -57,7 +57,7 @@ export async function updateCategoryAndInvalidate(slug: string, raw: unknown) {
       name: data.name,
       ...(newSlug !== slug ? { slug: newSlug } : {}),
       description: data.description || "",
-      image: data.image || "",
+      image: data.image || null,
       isActive: data.isActive,
     },
   });

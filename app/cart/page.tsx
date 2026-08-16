@@ -5,6 +5,7 @@ import { ShoppingBag, ShieldCheck, Lock, Headphones, ArrowRight, Info } from "lu
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CartCard } from "@/components/cart/CartCard";
+import { PendingMergeBanner } from "@/components/cart/PendingMergeBanner";
 import { useCart } from "@/hooks/useCart";
 import { formatNumber } from "@/lib/utils/format";
 
@@ -49,7 +50,9 @@ export default function CartPage() {
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex flex-col gap-6">
+          <PendingMergeBanner />
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* ═══════════════════════════════════════════
               CART ITEMS
               ═══════════════════════════════════════════ */}
@@ -169,6 +172,7 @@ export default function CartPage() {
               </div>
             </div>
           </aside>
+        </div>
         </div>
       )}
     </div>

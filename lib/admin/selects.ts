@@ -9,8 +9,12 @@ export const adminProductsListSelect = {
   stock: true,
   sku: true,
   images: true,
+  madeIn: true,
   featured: true,
+  bestSeller: true,
   isActive: true,
+  archived: true,
+  createdAt: true,
   family: {
     select: {
       id: true,
@@ -51,6 +55,14 @@ export const adminProductDetailSelect = {
     },
   },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
+  attributeValues: {
+    select: {
+      attributeTypeId: true,
+      attributeType: { select: { id: true, name: true, slug: true } },
+      attributeValueId: true,
+      attributeValue: { select: { id: true, value: true, slug: true } },
+    },
+  },
   specGroups: {
     orderBy: { position: "asc" as const },
     select: {

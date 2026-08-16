@@ -31,6 +31,10 @@ export type ProductListItem = Omit<
   stock: number | null;
   sku: string | null;
   description: string[];
+  bestSeller: boolean;
+  archived: boolean;
+  madeIn: string | null;
+  createdAt: string;
   reviewCount: number;
   rating: number | null;
 };
@@ -42,6 +46,7 @@ export type CartItem = {
   price: number;
   image: string;
   quantity: number;
+  stock: number;
 };
 
 export type ProductDetail = Omit<

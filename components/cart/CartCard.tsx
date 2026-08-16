@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, Bookmark } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CartItem } from "@/lib/types";
 import { formatNumber } from "@/lib/utils/format";
 
@@ -16,7 +16,10 @@ export function CartCard({ item, onUpdateQuantity, onRemove }: CartCardProps) {
   const lineTotal = item.price * item.quantity;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 items-start md:items-center hover:border-border/80 transition-colors duration-150">
+    <div
+      data-testid={`cart-item-${item.slug}`}
+      className="bg-card border border-border rounded-lg p-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 items-start md:items-center hover:border-border/80 transition-colors duration-150"
+    >
       {/* ── Product column ── */}
       <div className="col-span-6 flex items-start gap-4 w-full">
         <div className="relative w-24 h-24 shrink-0 overflow-hidden rounded-md bg-muted border border-border/40">
@@ -48,16 +51,6 @@ export function CartCard({ item, onUpdateQuantity, onRemove }: CartCardProps) {
             </span>
           )}
           <div className="flex gap-4 mt-2">
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-              onClick={() => {
-                // TODO: wire up "save for later" backend
-              }}
-            >
-              <Bookmark className="h-3.5 w-3.5" />
-              Save for later
-            </button>
             <button
               type="button"
               onClick={() => onRemove(item.productId)}
@@ -94,13 +87,15 @@ export function CartCard({ item, onUpdateQuantity, onRemove }: CartCardProps) {
             min={1}
             value={item.quantity}
             readOnly
+            data-testid="cart-item-quantity"
             className="w-12 h-full text-center border-none focus:ring-0 text-sm bg-transparent text-foreground tabular-nums p-0"
           />
           <button
             type="button"
             aria-label="Increase quantity"
-            className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors rounded-r-md"
+            className="w-8 h-full flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors rounded-r-md disabled:opacity-40 disabled:pointer-events-none"
             onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+            disabled={item.quantity >= item.stock}
           >
             <Plus className="h-3.5 w-3.5" />
           </button>

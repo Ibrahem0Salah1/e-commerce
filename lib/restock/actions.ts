@@ -84,5 +84,5 @@ export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
     console.error("[Restock] Cache invalidation failed (non-critical):", err);
   }
 
-  return invoice;
+  return { id: invoice.id };
 }

@@ -33,7 +33,7 @@ export async function FeaturedProducts() {
           asChild
           className="hidden sm:inline-flex rounded-md border-border/30 bg-background text-xs font-semibold px-4 h-9 hover:bg-accent transition-colors"
         >
-          <Link href="/shop">View all</Link>
+          <Link href="/shop?featured=true">View all</Link>
         </Button>
       </div>
 
@@ -45,7 +45,7 @@ export async function FeaturedProducts() {
           asChild
           className="w-full rounded-md border-border/30 bg-background text-xs font-semibold h-10"
         >
-          <Link href="/shop">View all products</Link>
+          <Link href="/shop?featured=true">View all products</Link>
         </Button>
       </div>
     </section>
