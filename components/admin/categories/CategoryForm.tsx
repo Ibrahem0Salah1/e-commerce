@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { BoolSelect, SlugDisplay } from "@/components/admin/shared";
+import { ImageUploader } from "@/components/admin/formComponents/ImageUploader";
 import { Loader2 } from "lucide-react";
 
 type CategoryFormProps = {
@@ -53,6 +54,7 @@ export function CategoryForm({
   });
 
   const watchedName = watch("name");
+  const watchedImage = watch("image");
   const liveSlug = slugify(watchedName || "");
 
   useEffect(() => {
@@ -115,13 +117,17 @@ export function CategoryForm({
 
           <div className="space-y-1.5">
             <Label htmlFor="image" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Image URL
+              Image
             </Label>
-            <Input
-              id="image"
-              {...register("image")}
-              placeholder="https://example.com/image.jpg"
+            <ImageUploader
+              value={watchedImage || null}
+              onChange={(url) =>
+                setValue("image", url ?? "", { shouldValidate: true })
+              }
             />
+            {errors.image && (
+              <p className="text-xs text-destructive">{errors.image.message}</p>
+            )}
           </div>
 
           <BoolSelect control={control} name="isActive" label="Active" />

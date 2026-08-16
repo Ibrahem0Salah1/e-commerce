@@ -76,7 +76,7 @@ export async function addProductAndInvalidate(raw: unknown) {
   await invalidatePattern("products:*");
   //
   await invalidateCache(`product:detail:${product.slug}`);
-  return product;
+  return { id: product.id, slug: product.slug };
 }
 
 export async function updateProductAndInvalidate(
@@ -87,30 +87,73 @@ export async function updateProductAndInvalidate(
 
   const data = updateProductSchema.parse(raw);
 
-  const updated = await prisma.product.update({
-    where: { id: productId },
-    data: {
-      name: data.name,
-      description: data.description,
-      madeIn: data.madeIn,
-      images: data.images,
-      categoryId: data.categoryId,
-      familyId: data.familyId,
-      brandId: data.brandId,
-      isActive: data.isActive,
-      archived: data.archived,
-      featured: data.featured,
-      bestSeller: data.bestSeller,
-      price: data.price,
-      stock: data.stock,
-      ...(data.sku ? { sku: data.sku } : {}),
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const updated = await tx.product.update({
+      where: { id: productId },
+      data: {
+        name: data.name,
+        description: data.description,
+        madeIn: data.madeIn,
+        images: data.images,
+        categoryId: data.categoryId,
+        familyId: data.familyId || null,
+        brandId: data.brandId || null,
+        isActive: data.isActive,
+        archived: data.archived,
+        featured: data.featured,
+        bestSeller: data.bestSeller,
+        price: data.price,
+        stock: data.stock,
+        sku: data.sku || null,
+      },
+    });
+
+    if (data.attributes) {
+      await tx.productAttributeValue.deleteMany({
+        where: { productId },
+      });
+      if (data.attributes.length > 0) {
+        await tx.productAttributeValue.createMany({
+          data: data.attributes.map((attr) => ({
+            productId,
+            attributeTypeId: attr.attributeTypeId,
+            attributeValueId: attr.attributeValueId,
+          })),
+        });
+      }
+    }
+
+    if (data.specGroups) {
+      await tx.specificationGroup.deleteMany({
+        where: { productId },
+      });
+      for (const group of data.specGroups) {
+        if (!group.specs.length) continue;
+
+        await tx.specificationGroup.create({
+          data: {
+            productId,
+            name: group.name,
+            position: group.position,
+            specs: {
+              create: group.specs.map((s) => ({
+                key: s.key,
+                value: s.value,
+                position: s.position,
+              })),
+            },
+          },
+        });
+      }
+    }
+
+    return updated;
   });
 
   await invalidateCache(`product:detail:${updated.slug}`);
   await invalidatePattern("products:*");
 
-  return updated;
+  return { id: updated.id, slug: updated.slug };
 }
 
 export async function deleteProductAndInvalidate(productId: string) {

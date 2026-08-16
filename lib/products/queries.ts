@@ -99,17 +99,31 @@ export async function getFeaturedProducts() {
   return getCached(
     "products:featured",
     async () => {
-      const result = await queryProductsDisplay({
-        q: "",
-        category: "",
-        family: "",
-        brand: "",
-        featured: true,
-        sort: "name",
-        page: 1,
-        limit: 8,
+      const products = await prisma.product.findMany({
+        where: { isActive: true, archived: false, featured: true },
+        orderBy: { name: "asc" },
+        take: 8,
+        select: productListDisplaySelect,
       });
-      return result.products;
+
+      return products.map(
+        ({ reviews, _count, price, description, family, ...rest }) => {
+          const avgRating =
+            reviews.length > 0
+              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+              : null;
+
+          return {
+            ...rest,
+            category: family?.category ?? null,
+            family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
+            description: description ?? [],
+            price: Number(price),
+            reviewCount: _count.reviews,
+            rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+          };
+        },
+      );
     },
     10800, //3 hours
   );

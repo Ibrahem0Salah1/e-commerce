@@ -7,7 +7,7 @@ export async function fetchCartItems(userId: string): Promise<CartItem[]> {
     where: { userId },
     include: {
       product: {
-        select: { id: true, slug: true, name: true, images: true, price: true },
+        select: { id: true, slug: true, name: true, images: true, price: true,stock: true },
       },
     },
   });
@@ -21,5 +21,6 @@ export async function fetchCartItems(userId: string): Promise<CartItem[]> {
       price: Number(ci.product!.price ?? 0),
       image: ci.product!.images[0] ?? "",
       quantity: ci.quantity,
+      stock: ci.product?.stock ?? 0,
     }));
 }

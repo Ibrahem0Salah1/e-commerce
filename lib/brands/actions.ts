@@ -27,7 +27,7 @@ export async function createBrandAndInvalidate(raw: unknown) {
     data: {
       name: data.name,
       slug,
-      logo: data.logo || "",
+      logo: data.logo || null,
       description: data.description || "",
       isActive: data.isActive,
     },
@@ -58,7 +58,7 @@ export async function updateBrandAndInvalidate(slug: string, raw: unknown) {
     data: {
       name: data.name,
       ...(newSlug !== slug ? { slug: newSlug } : {}),
-      logo: data.logo || "",
+      logo: data.logo || null,
       description: data.description || "",
       isActive: data.isActive,
     },

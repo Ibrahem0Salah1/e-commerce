@@ -1,3 +1,4 @@
+// hooks/useCart.ts
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,13 +10,14 @@ import { authClient } from "@/lib/auth/client";
 import {
   addToCartAction,
   getCartAction,
+  mergeCartAction,
   removeFromCartAction,
   updateCartQuantityAction,
   clearCartAction,
 } from "@/lib/cart/actions";
 
-/* ── Module-level guard: ensures merge runs once per user, globally ── */
 let lastMergedUserId: string | null = null;
+let mergeAttemptedForUser: string | null = null;
 
 export function useCart() {
   const { data: session, isPending: sessionLoading } = authClient.useSession();
@@ -30,31 +32,23 @@ export function useCart() {
 
   /* ── Merge guest cart on login ── */
   const mergeMutation = useMutation({
-    mutationFn: async (items: CartItem[]) => {
-      const results = await Promise.allSettled(
-        items.map((item) => addToCartAction(item.productId, item.quantity)),
-      );
-
-      const succeeded: string[] = [];
-      const failed: string[] = [];
-
-      results.forEach((res, idx) => {
-        if (res.status === "fulfilled" && res.value.success) {
-          succeeded.push(items[idx].productId);
-        } else {
-          failed.push(items[idx].productId);
-        }
-      });
-
-      return { succeeded, failed };
-    },
+    mutationFn: async (items: CartItem[]) =>
+      mergeCartAction(
+        items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      ),
     onSuccess: ({ succeeded, failed }) => {
       if (succeeded.length > 0) {
-        // Functional update: remove only the items we just merged,
-        // preserving anything the user added to guest cart while merge was in flight
         useGuestCart.setState((state) => ({
           items: state.items.filter((i) => !succeeded.includes(i.productId)),
         }));
+      }
+
+      if (succeeded.length === 0 && failed.length === 0) {
+        // The guest cart was empty — nothing was merged, nothing to report.
+        return;
       }
 
       if (failed.length === 0) {
@@ -68,15 +62,17 @@ export function useCart() {
       } else {
         toast.error("Sync failed", {
           description:
-            "None of your guest items could be added. They remain in your local cart.",
+            "None of your guest cart items could be added. They remain in your local cart.",
         });
       }
 
       invalidate();
     },
     onError: () => {
-      // Allow retry on next mount / auth change
-      lastMergedUserId = null;
+      // Deliberately do NOT reset lastMergedUserId here: the module-level guard
+      // stops the effect from re-firing on every render, which would otherwise
+      // turn a transient failure into a tight retry + toast loop. Retries now
+      // happen on page reload or via the explicit "Try again" action.
       toast.error("Sync failed", {
         description: "Could not merge your guest cart. Items preserved locally.",
       });
@@ -85,10 +81,14 @@ export function useCart() {
 
   useEffect(() => {
     const userId = session?.user?.id;
-
-    // Reset when logged out so next login can merge again
     if (!isLoggedIn) {
-      lastMergedUserId = null;
+      // Never touch the guard while the session query is still loading. A
+      // component that mounts mid-fetch (e.g. a streamed product card) would
+      // otherwise reset the guard and let a second instance re-run the merge,
+      // double-adding the guest items to the server cart.
+      if (!sessionLoading) {
+        lastMergedUserId = null;
+      }
       return;
     }
 
@@ -99,9 +99,10 @@ export function useCart() {
       guestCart.items.length > 0
     ) {
       lastMergedUserId = userId;
+      mergeAttemptedForUser = userId;
       mergeMutation.mutate(guestCart.items);
     }
-  }, [isLoggedIn, session?.user?.id, guestCart.items, mergeMutation]);
+  }, [isLoggedIn, sessionLoading, session?.user?.id, guestCart.items, mergeMutation.isPending, mergeMutation.mutate]);
 
   /* ── Server cart query ── */
   const query = useQuery({
@@ -109,6 +110,7 @@ export function useCart() {
     queryFn: getCartAction,
     enabled: isLoggedIn,
     staleTime: 30_000,
+    placeholderData: (previous) => previous,
   });
 
   /* ── Mutations ── */
@@ -171,9 +173,7 @@ export function useCart() {
       });
     },
     onError: (err) => {
-      toast.error(
-        err instanceof Error ? err.message : "Could not remove item",
-      );
+      toast.error(err instanceof Error ? err.message : "Could not remove item");
     },
   });
 
@@ -188,37 +188,74 @@ export function useCart() {
       toast.success(result.toast.title);
     },
     onError: (err) => {
-      toast.error(
-        err instanceof Error ? err.message : "Could not clear cart",
-      );
+      toast.error(err instanceof Error ? err.message : "Could not clear cart");
     },
   });
 
-  /* ── Unified API ── */
+  /* ── Unified API with Stock Validation ── */
   const items = isLoggedIn ? (query.data ?? []) : guestCart.items;
 
-  const addItem = (item: Omit<CartItem, "quantity">, quantity = 1) => {
+  const addItem = (
+    item: Omit<CartItem, "quantity">,
+    quantity = 1,
+  ) => {
     if (isLoggedIn) {
       addMutation.mutate({ productId: item.productId, quantity });
-    } else {
-      guestCart.addItem(item, quantity);
-      toast.success("Added to cart", {
-        description: `${item.name} has been added.`,
-      });
+      return;
     }
+
+    // ── GUEST: validate stock before mutating store ──
+    const existing = guestCart.items.find((i) => i.productId === item.productId);
+    const currentQty = existing?.quantity ?? 0;
+    const availableStock = item.stock ?? 0;
+
+    if (availableStock <= 0) {
+      toast.error("Out of stock", {
+        description: "This item is currently unavailable.",
+      });
+      return;
+    }
+
+    if (currentQty + quantity > availableStock) {
+      const remaining = availableStock - currentQty;
+      toast.error("Stock limit reached", {
+        description:
+          remaining > 0
+            ? `Only ${remaining} more available. (In stock: ${availableStock})`
+            : "This item is out of stock.",
+      });
+      return;
+    }
+
+    guestCart.addItem(item, quantity);
+    toast.success("Added to cart", {
+      description: `${item.name} has been added.`,
+    });
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
     if (isLoggedIn) {
       updateMutation.mutate({ productId, quantity });
+      return;
+    }
+
+    // ── GUEST: validate stock before mutating store ──
+    const item = guestCart.items.find((i) => i.productId === productId);
+    const availableStock = item?.stock ?? 0;
+
+    if (quantity > 0 && quantity > availableStock) {
+      toast.error("Stock limit reached", {
+        description: `Only ${availableStock} units available.`,
+      });
+      return;
+    }
+
+    if (quantity <= 0) {
+      guestCart.removeItem(productId);
+      toast.success("Item removed");
     } else {
-      if (quantity <= 0) {
-        guestCart.removeItem(productId);
-        toast.success("Item removed");
-      } else {
-        guestCart.updateQuantity(productId, quantity);
-        toast.success("Quantity updated");
-      }
+      guestCart.updateQuantity(productId, quantity);
+      toast.success("Quantity updated");
     }
   };
 
@@ -248,6 +285,30 @@ export function useCart() {
     0,
   );
 
+  // Items from the guest store that are still pending a merge (a previous
+  // merge failed for them, either partially or fully). While signed in these
+  // are invisible in the cart UI, so the pending-merge banner surfaces them.
+  const userId = session?.user?.id;
+  const pendingGuestItems = isLoggedIn ? guestCart.items : [];
+  const hasPendingMerge =
+    isLoggedIn &&
+    guestCart.items.length > 0 &&
+    mergeAttemptedForUser === userId &&
+    !mergeMutation.isPending;
+
+  const retryPendingMerge = () => {
+    if (!userId || guestCart.items.length === 0 || mergeMutation.isPending) {
+      return;
+    }
+    lastMergedUserId = userId;
+    mergeAttemptedForUser = userId;
+    mergeMutation.mutate(guestCart.items);
+  };
+
+  const discardPendingGuestItems = () => {
+    guestCart.clearCart();
+  };
+
   return {
     items,
     addItem,
@@ -259,5 +320,9 @@ export function useCart() {
     isLoggedIn,
     isLoading: sessionLoading || (isLoggedIn && query.isLoading),
     isMerging: mergeMutation.isPending,
+    pendingGuestItems,
+    hasPendingMerge,
+    retryPendingMerge,
+    discardPendingGuestItems,
   };
 }

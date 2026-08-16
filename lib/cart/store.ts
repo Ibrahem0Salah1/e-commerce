@@ -1,3 +1,4 @@
+// lib/cart/store.ts
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { CartItem } from "@/lib/types";
@@ -20,6 +21,7 @@ export const useGuestCart = create(
           const existing = state.items.find(
             (i) => i.productId === item.productId,
           );
+
           if (existing) {
             return {
               items: state.items.map((i) =>
@@ -42,10 +44,10 @@ export const useGuestCart = create(
           quantity <= 0
             ? { items: state.items.filter((i) => i.productId !== productId) }
             : {
-              items: state.items.map((i) =>
-                i.productId === productId ? { ...i, quantity } : i,
-              ),
-            },
+                items: state.items.map((i) =>
+                  i.productId === productId ? { ...i, quantity } : i,
+                ),
+              },
         ),
 
       clearCart: () => set({ items: [] }),

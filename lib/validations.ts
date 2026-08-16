@@ -38,7 +38,16 @@ export const filtersSchema = z.object({
   family: z.string().default(""),
   brand: z.string().default(""),
   featured: z.boolean().default(false),
-  sort: z.enum(["price_asc", "price_desc", "name"]).default("name"),
+  sort: z
+    .enum([
+      "price_asc",
+      "price_desc",
+      "name",
+      "newest",
+      "stock_asc",
+      "stock_desc",
+    ])
+    .default("name"),
   q: z.string().default(""),
 });
 
@@ -90,7 +99,7 @@ export const addProductFormSchema = z.object({
   price: z.number().min(0.01, "Price must be greater than 0"),
   stock: z.number().int().min(0, "Stock cannot be negative"),
   sku: z.string(),
-  images: z.string(),
+  images: z.array(z.string().url()).min(1, "At least one image required").max(5),
   categoryId: z.string().min(1, "Category is required"),
   familyId: z.string().min(1, "Family is required"),
   brandId: z.string(),
@@ -108,29 +117,64 @@ export const addProductFormSchema = z.object({
 
 /* ───────────────────────────────────────────────
    Edit-product form schema (client-side)
-   Same as add but without slug & attribute selects
+   Matches the add form shape (slug locked, never changed)
    ─────────────────────────────────────────────── */
 export const editProductFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
+  slug: z.string(),
   description: z.string(),
   madeIn: z.string(),
   price: z.number().min(0.01, "Price must be greater than 0"),
   stock: z.number().int().min(0, "Stock cannot be negative"),
   sku: z.string(),
-  images: z.string(),
+  images: z.array(z.string().url()).min(1, "At least one image required").max(5),
   categoryId: z.string().min(1, "Category is required"),
-  familyId: z.string().min(1, "Family is required"),
+  familyId: z.string(),
   brandId: z.string(),
   isActive: z.boolean(),
   archived: z.boolean(),
   featured: z.boolean(),
   bestSeller: z.boolean(),
+  sizeValueId: z.string(),
+  unitValueId: z.string(),
+  colorValueId: z.string(),
+  shadeValueId: z.string(),
+  specGroups: z.array(specGroupFormSchema),
 });
 
 
 /* ───────────────────────────────────────────────
    Server schemas (arrays + nulls)
    ─────────────────────────────────────────────── */
+const productAttributeValueSchema = z.object({
+  attributeTypeId: z.string(),
+  attributeValueId: z.string(),
+});
+
+const productAttributesSchema = z
+  .array(productAttributeValueSchema)
+  .optional()
+  .refine(
+    (attrs) =>
+      !attrs ||
+      new Set(attrs.map((a) => a.attributeTypeId)).size === attrs.length,
+    "Each attribute type can only have one value per product"
+  );
+
+const productSpecSchema = z.object({
+  key: z.string().min(1),
+  value: z.string().min(1),
+  position: z.number().int(),
+});
+
+const productSpecGroupSchema = z.object({
+  name: z.string().min(1),
+  position: z.number().int(),
+  specs: z.array(productSpecSchema),
+});
+
+const productSpecGroupsSchema = z.array(productSpecGroupSchema).optional();
+
 export const addProductSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
@@ -139,7 +183,7 @@ export const addProductSchema = z.object({
   price: z.number().min(0.01),
   stock: z.number().int().min(0),
   sku: z.string().optional(),
-  images: z.array(z.string()),
+  images: z.array(z.string().url()).min(1, "At least one image required").max(5),
   categoryId: z.string(),
   familyId: z.string().optional(),
   brandId: z.string().nullable(),
@@ -147,43 +191,24 @@ export const addProductSchema = z.object({
   archived: z.boolean(),
   featured: z.boolean(),
   bestSeller: z.boolean(),
-  attributes: z
-    .array(
-      z.object({
-        attributeTypeId: z.string(),
-        attributeValueId: z.string(),
-      })
-    )
-    .optional()
-    .refine(
-      (attrs) =>
-        !attrs ||
-        new Set(attrs.map((a) => a.attributeTypeId)).size === attrs.length,
-      "Each attribute type can only have one value per product"
-    ),
-  specGroups: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        position: z.number().int(),
-        specs: z.array(
-          z.object({
-            key: z.string().min(1),
-            value: z.string().min(1),
-            position: z.number().int(),
-          })
-        ),
-      })
-    )
-    .optional(),
+  attributes: productAttributesSchema,
+  specGroups: productSpecGroupsSchema,
 });
+//
+export const ATTR_FIELD_MAP: Record<string, keyof AddProductForm> = {
+  size: "sizeValueId",
+  shade: "shadeValueId",
+  color: "colorValueId",
+  unit: "unitValueId",
+};
+//
 export const updateProductSchema = z.object({
   name: z.string().min(1),
   description: z.array(z.string()),
   madeIn: z.string().nullable(),
   images: z.array(z.string()),
   categoryId: z.string(),
-  familyId: z.string(),
+  familyId: z.string().nullable(),
   brandId: z.string().nullable(),
   isActive: z.boolean(),
   archived: z.boolean(),
@@ -191,7 +216,9 @@ export const updateProductSchema = z.object({
   bestSeller: z.boolean(),
   price: z.number().min(0.01),
   stock: z.number().int().min(0),
-  sku: z.string().optional(),
+  sku: z.string().nullable().optional(),
+  attributes: productAttributesSchema,
+  specGroups: productSpecGroupsSchema,
 });
 
 export const purchaseInvoiceLineSchema = z.object({

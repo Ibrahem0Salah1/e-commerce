@@ -3,15 +3,12 @@ import type { NextConfig } from "next";
 
 
 const nextConfig: NextConfig = {
-  cacheComponents: true,
-  partialPrefetching: true,
+  // cacheComponents: true,
+  // partialPrefetching: true,
   images: {
     // Cache optimized images for 31 days
-    minimumCacheTTL: 2678400,
-
-    // Only generate WebP versions
-    formats: ["image/webp"],
-
+   formats: ["image/webp", "image/avif"],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     // Only allow these quality levels
     qualities: [60, 75],
 
@@ -31,15 +28,19 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "res.cloudinary.com",
+         hostname: "pub-73f65fffffb8440d8b0b6d5313971be0.r2.dev", // or "cdn.yourdomain.com"
       },
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "placehold.co"
+      },
+       {
+        protocol: "https",
+        hostname: "*.r2.cloudflarestorage.com",
       },
       {
         protocol: "https",
-        hostname: "placehold.co",
+        hostname: "mds-woad.vercel.app", // your custom R2 domain
       },
       {
         protocol: "https",

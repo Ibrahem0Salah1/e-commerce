@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BoolSelect, SlugDisplay } from "@/components/admin/shared";
+import { ImageUploader } from "@/components/admin/formComponents/ImageUploader";
 import { Loader2 } from "lucide-react";
 
 type BrandFormProps = {
@@ -49,6 +50,7 @@ export function BrandForm({ initialSlug, defaultValues }: BrandFormProps) {
   });
 
   const watchedName = watch("name");
+  const watchedLogo = watch("logo");
   const liveSlug = slugify(watchedName || "");
 
   useEffect(() => {
@@ -98,13 +100,17 @@ export function BrandForm({ initialSlug, defaultValues }: BrandFormProps) {
 
           <div className="space-y-1.5">
             <Label htmlFor="logo" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Logo URL
+              Logo
             </Label>
-            <Input
-              id="logo"
-              {...register("logo")}
-              placeholder="https://example.com/logo.png"
+            <ImageUploader
+              value={watchedLogo || null}
+              onChange={(url) =>
+                setValue("logo", url ?? "", { shouldValidate: true })
+              }
             />
+            {errors.logo && (
+              <p className="text-xs text-destructive">{errors.logo.message}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">

@@ -5,9 +5,11 @@ import type { BrandListItem, BrandDetail } from "./types";
 
 export type { BrandListItem, BrandDetail };
 
-export async function getBrands(): Promise<BrandListItem[]> {
+export async function getBrands(take?: number): Promise<BrandListItem[]> {
   const brands = await prisma.brand.findMany({
+    where: { isActive: true },
     orderBy: { name: "asc" },
+    ...(take ? { take } : {}),
     select: brandListSelect,
   });
   return plain(brands);
