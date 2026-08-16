@@ -37,7 +37,7 @@ const tickerItems = [
 
 export function SupplyTicker() {
   return (
-    <div className="relative flex justify-center items-center  w-full overflow-hidden bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-y border-primary/20  sm:py-3 shadow-inner">
+    <div className="relative flex justify-center items-center  w-full overflow-hidden bg-liner-to-r from-primary/10 via-primary/5 to-primary/10 border-y border-primary/20  sm:py-3 shadow-inner">
       <style>{`
         @keyframes ticker-scroll {
           0% {
@@ -59,8 +59,8 @@ export function SupplyTicker() {
       `}</style>
 
       {/* Gradient side overlays for smooth fade effect */}
-      <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-20 z-10 bg-gradient-to-r from-background to-transparent opacity-90" />
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-20 z-10 bg-gradient-to-l from-background to-transparent opacity-90" />
+      <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-20 z-10 bg-liner-to-r from-background to-transparent opacity-90" />
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-20 z-10 bg-liner-to-l from-background to-transparent opacity-90" />
 
       <div className="ticker-track">
         {/* Duplicated list creates a seamless infinite loop */}
