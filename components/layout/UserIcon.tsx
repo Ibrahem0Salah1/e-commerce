@@ -1,7 +1,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShieldCheck, User as UserIcon, Settings } from "lucide-react";
+import { ShieldCheck, User as UserIcon, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/auth/actions";
 import { SessionUser } from "@/lib/types";
@@ -57,6 +57,11 @@ export default function UserMenu({ user }: { user: SessionUser | null }) {
                         </Link>
                     </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild>
+                    <Link href="/orders" className="flex cursor-pointer items-center gap-2">
+                        <ShoppingBag className="h-4 w-4" /> My Orders
+                    </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                     <Link href={`/profile/${user.id}`} className="flex cursor-pointer items-center gap-2">
                         <UserIcon className="h-4 w-4" /> Profile

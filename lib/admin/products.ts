@@ -13,16 +13,14 @@ import {
   adminProductsListSelect,
   type AdminProductListRaw,
 } from "@/lib/admin/selects";
+import { getAverageRatingsByIds } from "@/lib/reviews/queries";
 import { plain } from "../utils/serialize";
 
-function mapAdminProductRow(row: AdminProductListRaw): ProductListItem {
-  const { reviews, _count, price, description, family, stock, sku, createdAt, ...rest } = row;
-
-  const avgRating =
-    reviews.length > 0
-      ? reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) /
-        reviews.length
-      : null;
+function mapAdminProductRow(
+  row: AdminProductListRaw,
+  ratingById: Map<string, number>,
+): ProductListItem {
+  const { _count, price, description, family, stock, sku, createdAt, ...rest } = row;
 
   return {
     ...rest,
@@ -34,7 +32,7 @@ function mapAdminProductRow(row: AdminProductListRaw): ProductListItem {
     sku: sku ?? null,
     createdAt: new Date(createdAt).toISOString(),
     reviewCount: _count.reviews,
-    rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+    rating: ratingById.get(row.id) ?? null,
   };
 }
 
@@ -77,8 +75,11 @@ export async function getAdminProducts(
     prisma.product.count({ where }),
   ]);
 
+  // ONE batched groupBy for the whole page instead of loading every rating row
+  const ratingById = await getAverageRatingsByIds(products.map((p) => p.id));
+
   return plain({
-    products: products.map(mapAdminProductRow),
+    products: products.map((row) => mapAdminProductRow(row, ratingById)),
     pagination: {
       page: filters.page,
       limit: filters.limit,

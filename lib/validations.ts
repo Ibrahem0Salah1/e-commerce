@@ -4,7 +4,6 @@ export type OtpForm = z.infer<typeof otpSchema>;
 export type SignUpFormFields = z.infer<typeof signUpSchema>;
 export type SignInFormFields = z.infer<typeof signInSchema>;
 export type FiltersFormFields = z.infer<typeof filtersSchema>;
-export type CheckoutFormFields = z.infer<typeof checkoutSchema>;
 export type EditProductForm = z.infer<typeof editProductFormSchema>;
 export type AddProductForm = z.infer<typeof addProductFormSchema>;
 export type PurchaseInvoiceForm = z.infer<
@@ -51,25 +50,79 @@ export const filtersSchema = z.object({
   q: z.string().default(""),
 });
 
-export const checkoutSchema = z.object({
-  idempotencyKey: z.string().min(1),
-  items: z
-    .array(
-      z.object({
-        productId: z.string().cuid(),
-        quantity: z.number().int().min(1).max(100),
-      }),
-    )
-    .min(1, "Cart cannot be empty"),
-  couponCode: z.string().optional(),
-  shippingName: z.string().min(2),
-  shippingPhone: z.string().min(8),
-  shippingAddress: z.string().min(5),
-  shippingCity: z.string().min(2),
-  shippingNotes: z.string().optional(),
-  guestEmail: z.string().email().optional(),
-  guestName: z.string().optional(),
+export type CheckoutFormFields = z.infer<typeof checkoutFormSchema>;
+export type CheckoutPayload = z.infer<typeof checkoutSchema>;
+
+export const checkoutCartItemSchema = z.object({
+  productId: z.string().min(1, "Product is required"),
+  quantity: z
+    .number()
+    .int()
+    .min(1, "Quantity must be at least 1")
+    .max(50, "Maximum 50 units allowed per item"),
 });
+
+export const checkoutFormSchema = z.object({
+  shippingMethodId: z.string().min(1, "Please select a delivery / shipping method"),
+  shippingName: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name cannot exceed 100 characters"),
+  shippingPhone: z
+    .string()
+    .trim()
+    .regex(
+      /^(?:\+?20|0)?1[0-25]\d{8}$/,
+      "Please enter a valid Egyptian phone number (e.g., 01012345678 or +201012345678)",
+    ),
+  shippingAddress: z
+    .string()
+    .trim()
+    .min(5, "Address must be at least 5 characters")
+    .max(300, "Address is too long"),
+  shippingCity: z
+    .string()
+    .trim()
+    .min(2, "City / Governorate is required")
+    .max(100, "City name is too long"),
+  shippingNotes: z
+    .string()
+    .trim()
+    .max(500, "Notes cannot exceed 500 characters")
+    .optional()
+    .or(z.literal("")),
+  turnstileToken: z.string().optional().or(z.literal("")),
+});
+
+export const checkoutSchema = checkoutFormSchema.extend({
+  idempotencyKey: z.string().uuid("Invalid idempotency key format"),
+  items: z
+    .array(checkoutCartItemSchema)
+    .min(1, "Cart cannot be empty")
+    .max(50, "Too many distinct products in a single order"),
+});
+
+export const adminUpdateOrderStatusSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  newStatus: z.enum([
+    "PENDING",
+    "CONFIRMED",
+    "SHIPPED",
+    "DELIVERED",
+    "CANCELLED",
+  ]),
+});
+
+export const adminCancelOrderSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  reason: z.string().optional(),
+});
+
+export const adminMarkPaidSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+});
+
 
 
 /* ───────────────────────────────────────────────
