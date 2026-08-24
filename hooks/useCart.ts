@@ -1,4 +1,4 @@
-// hooks/useCart.ts
+﻿// hooks/useCart.ts
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +30,7 @@ export function useCart() {
     [queryClient],
   );
 
-  /* ── Merge guest cart on login ── */
+  /* â”€â”€ Merge guest cart on login â”€â”€ */
   const mergeMutation = useMutation({
     mutationFn: async (items: CartItem[]) =>
       mergeCartAction(
@@ -39,30 +39,50 @@ export function useCart() {
           quantity: item.quantity,
         })),
       ),
-    onSuccess: ({ succeeded, failed }) => {
-      if (succeeded.length > 0) {
+    onSuccess: (outcome) => {
+      // Everything the server classified is resolved one way or another:
+      // added → lives in the DB cart; skippedStockFull → DB cart already holds
+      // the max; unavailable → gone from the catalog. Only `pending` items
+      // stay local for a later retry.
+      const processed = new Set<string>([
+        ...outcome.added.map((a) => a.productId),
+        ...outcome.skippedStockFull,
+        ...outcome.unavailable,
+      ]);
+
+      if (processed.size > 0) {
         useGuestCart.setState((state) => ({
-          items: state.items.filter((i) => !succeeded.includes(i.productId)),
+          items: state.items.filter((i) => !processed.has(i.productId)),
         }));
       }
 
-      if (succeeded.length === 0 && failed.length === 0) {
-        // The guest cart was empty — nothing was merged, nothing to report.
-        return;
+      const totalAdded = outcome.added.reduce((sum, a) => sum + a.quantity, 0);
+      const clampedCount = outcome.added.filter(
+        (a) => a.quantity < a.requestedQuantity,
+      ).length;
+
+      if (totalAdded > 0) {
+        toast.success(
+          clampedCount > 0 ? "Cart synced (stock-limited)" : "Cart synced",
+          {
+            description:
+              clampedCount > 0
+                ? `${totalAdded} unit(s) merged — some quantities were limited by available stock.`
+                : `${totalAdded} unit(s) merged into your account cart.`,
+          },
+        );
       }
 
-      if (failed.length === 0) {
-        toast.success("Cart synced", {
-          description: "Your guest cart items have been added.",
-        });
-      } else if (succeeded.length > 0) {
-        toast.success("Partially synced", {
-          description: `${succeeded.length} item(s) added. ${failed.length} failed (stock or availability).`,
-        });
-      } else {
-        toast.error("Sync failed", {
+      if (outcome.unavailable.length > 0) {
+        toast.error(`${outcome.unavailable.length} item(s) removed`, {
           description:
-            "None of your guest cart items could be added. They remain in your local cart.",
+            "No longer available in the catalog, so they were discarded.",
+        });
+      }
+
+      if (outcome.skippedStockFull.length > 0) {
+        toast.warning("Already at stock limit", {
+          description: `${outcome.skippedStockFull.length} item(s) were already maxed out in your cart.`,
         });
       }
 
@@ -104,7 +124,7 @@ export function useCart() {
     }
   }, [isLoggedIn, sessionLoading, session?.user?.id, guestCart.items, mergeMutation.isPending, mergeMutation.mutate]);
 
-  /* ── Server cart query ── */
+  /* â”€â”€ Server cart query â”€â”€ */
   const query = useQuery({
     queryKey: ["cart"],
     queryFn: getCartAction,
@@ -113,7 +133,7 @@ export function useCart() {
     placeholderData: (previous) => previous,
   });
 
-  /* ── Mutations ── */
+  /* â”€â”€ Mutations â”€â”€ */
   const addMutation = useMutation({
     mutationFn: async ({
       productId,
@@ -192,7 +212,7 @@ export function useCart() {
     },
   });
 
-  /* ── Unified API with Stock Validation ── */
+  /* â”€â”€ Unified API with Stock Validation â”€â”€ */
   const items = isLoggedIn ? (query.data ?? []) : guestCart.items;
 
   const addItem = (
@@ -204,7 +224,7 @@ export function useCart() {
       return;
     }
 
-    // ── GUEST: validate stock before mutating store ──
+    // â”€â”€ GUEST: validate stock before mutating store â”€â”€
     const existing = guestCart.items.find((i) => i.productId === item.productId);
     const currentQty = existing?.quantity ?? 0;
     const availableStock = item.stock ?? 0;
@@ -239,7 +259,7 @@ export function useCart() {
       return;
     }
 
-    // ── GUEST: validate stock before mutating store ──
+    // â”€â”€ GUEST: validate stock before mutating store â”€â”€
     const item = guestCart.items.find((i) => i.productId === productId);
     const availableStock = item?.stock ?? 0;
 

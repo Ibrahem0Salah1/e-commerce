@@ -40,7 +40,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, totalPrice, totalItems, clearCart, isLoggedIn, isLoading: cartLoading } = useCart();
+  const { items, totalPrice, totalItems, clearCart, isLoggedIn, isLoading: cartLoading, isMerging, hasPendingMerge } = useCart();
 
   const [shippingMethods, setShippingMethods] = useState<ShippingMethodOption[]>([]);
   const [methodsLoading, setMethodsLoading] = useState(true);
@@ -97,6 +97,22 @@ export default function CheckoutPage() {
   const onSubmit = async (formData: CheckoutFormFields) => {
     if (items.length === 0) {
       toast.error("Your cart is empty.");
+      return;
+    }
+
+    // Never place an order while the guest→account merge is still in flight:
+    // the order is built from the DB cart, and unmerged local items would be
+    // missing from it (the exact "silent drop" this guard exists to prevent).
+    if (isMerging) {
+      toast.error("Still syncing your cart", {
+        description: "One moment — finishing your cart sync. Try again in a second.",
+      });
+      return;
+    }
+    if (hasPendingMerge) {
+      toast.error("Some saved items aren't synced yet", {
+        description: "Review your cart page to retry or discard them first.",
+      });
       return;
     }
 
@@ -570,7 +586,7 @@ export default function CheckoutPage() {
                 type="submit"
                 size="lg"
                 className="mt-6 w-full gap-2 text-base font-semibold cursor-pointer"
-                disabled={isPlacingOrder || methodsLoading}
+                disabled={isPlacingOrder || methodsLoading || isMerging || hasPendingMerge}
               >
                 {isPlacingOrder ? (
                   <>
@@ -584,6 +600,24 @@ export default function CheckoutPage() {
                   </>
                 )}
               </Button>
+
+              {/* Merge-state notices: keep the user informed WHY the button
+                  may be temporarily unavailable. */}
+              {isMerging && (
+                <p className="mt-2 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Syncing your saved cart…
+                </p>
+              )}
+              {!isMerging && hasPendingMerge && (
+                <p className="mt-2 text-center text-xs text-destructive">
+                  Some saved items aren&apos;t synced.{" "}
+                  <Link href="/cart" className="underline underline-offset-2">
+                    Review your cart
+                  </Link>{" "}
+                  to retry or discard them.
+                </p>
+              )}
 
               {/* Trust Badges */}
               <div className="mt-6 space-y-2.5 border-t border-border pt-4 text-xs text-muted-foreground">

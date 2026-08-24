@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -30,7 +30,7 @@ vi.mock("@/lib/auth/client", () => ({
   },
 }));
 vi.mock("@/lib/cart/actions", () => actionsMock);
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
 
 const SESSION = { user: { id: "u1", name: "Tester", email: "t@example.com" } };
 
@@ -76,7 +76,7 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe("useCart — guest mode", () => {
+describe("useCart â€” guest mode", () => {
   it("adds a valid item to the guest store and shows a success toast", () => {
     const { wrapper } = setup();
     const { result } = renderHook(() => useCart(), { wrapper });
@@ -203,7 +203,7 @@ describe("useCart — guest mode", () => {
   });
 });
 
-describe("useCart — signed-in mode", () => {
+describe("useCart â€” signed-in mode", () => {
   it("routes addItem through the addToCartAction server action", async () => {
     actionsMock.addToCartAction.mockResolvedValue({
       success: true,
@@ -290,7 +290,7 @@ describe("useCart — signed-in mode", () => {
   });
 });
 
-describe("useCart — merge guest cart on login", () => {
+describe("useCart â€” merge guest cart on login", () => {
   it("does not trigger a merge while logged out", async () => {
     useGuestCart.setState({ items: [item()] });
     const { wrapper } = setup();
@@ -316,8 +316,13 @@ describe("useCart — merge guest cart on login", () => {
       items: [item({ quantity: 1 }), item({ productId: "p2", quantity: 2 })],
     });
     actionsMock.mergeCartAction.mockResolvedValue({
-      succeeded: ["p1", "p2"],
-      failed: [],
+      added: [
+        { productId: "p1", quantity: 1, requestedQuantity: 1 },
+        { productId: "p2", quantity: 2, requestedQuantity: 2 },
+      ],
+      skippedStockFull: [],
+      unavailable: [],
+      pending: [],
     });
     actionsMock.getCartAction.mockResolvedValue([]);
 
@@ -335,18 +340,71 @@ describe("useCart — merge guest cart on login", () => {
     expect(toast.success).toHaveBeenCalledWith("Cart synced", expect.anything());
   });
 
-  it("keeps failed items locally and removes only the succeeded ones", async () => {
+  it("reports stock-limited merges and still clears the local copies", async () => {
     useGuestCart.setState({
-      items: [item({ productId: "p1", quantity: 1 }), item({ productId: "p2", quantity: 2 })],
+      items: [
+        item({ productId: "p1", quantity: 3 }),
+        item({ productId: "p2", quantity: 2 }),
+      ],
     });
     actionsMock.mergeCartAction.mockResolvedValue({
-      succeeded: ["p2"],
-      failed: ["p1"],
+      // wanted 3, only 2 stored; p2 gone from catalog entirely
+      added: [{ productId: "p1", quantity: 2, requestedQuantity: 3 }],
+      skippedStockFull: [],
+      unavailable: ["p2"],
+      pending: [],
     });
     actionsMock.getCartAction.mockResolvedValue([]);
 
-    // Unique user id per test: the module-level lastMergedUserId guard resets
-    // only on a fresh module load, so each merge test needs its own user.
+    const { wrapper } = setup({ session: sessionFor("merge-clamp") });
+    renderHook(() => useCart(), { wrapper });
+
+    await waitFor(() => expect(useGuestCart.getState().items).toEqual([]));
+    expect(toast.success).toHaveBeenCalledWith(
+      "Cart synced (stock-limited)",
+      expect.anything(),
+    );
+    expect(toast.error).toHaveBeenCalledWith(
+      "1 item(s) removed",
+      expect.anything(),
+    );
+  });
+
+  it("discards already-maxed items as skippedStockFull", async () => {
+    useGuestCart.setState({ items: [item()] });
+    actionsMock.mergeCartAction.mockResolvedValue({
+      added: [],
+      skippedStockFull: ["p1"],
+      unavailable: [],
+      pending: [],
+    });
+    actionsMock.getCartAction.mockResolvedValue([]);
+
+    const { wrapper } = setup({ session: sessionFor("merge-full") });
+    renderHook(() => useCart(), { wrapper });
+
+    await waitFor(() => expect(useGuestCart.getState().items).toEqual([]));
+    expect(toast.warning).toHaveBeenCalledWith(
+      "Already at stock limit",
+      expect.anything(),
+    );
+  });
+
+  it("keeps only pending items locally when part of the merge was not processed", async () => {
+    useGuestCart.setState({
+      items: [
+        item({ productId: "p1", quantity: 1 }),
+        item({ productId: "p2", quantity: 2 }),
+      ],
+    });
+    actionsMock.mergeCartAction.mockResolvedValue({
+      added: [{ productId: "p2", quantity: 2, requestedQuantity: 2 }],
+      skippedStockFull: [],
+      unavailable: [],
+      pending: ["p1"],
+    });
+    actionsMock.getCartAction.mockResolvedValue([]);
+
     const { wrapper } = setup({ session: sessionFor("merge-partial") });
     const { result } = renderHook(() => useCart(), { wrapper });
 
@@ -355,29 +413,36 @@ describe("useCart — merge guest cart on login", () => {
     await waitFor(() =>
       expect(useGuestCart.getState().items.map((i) => i.productId)).toEqual(["p1"]),
     );
-    expect(toast.success).toHaveBeenCalledWith("Partially synced", expect.anything());
+    await waitFor(() => expect(result.current.hasPendingMerge).toBe(true));
+    expect(result.current.pendingGuestItems.map((i) => i.productId)).toEqual(["p1"]);
   });
 
-  it("keeps every item when the merge fails completely", async () => {
+  it("keeps every item pending when nothing could be processed (no silent drop)", async () => {
     useGuestCart.setState({ items: [item()] });
     actionsMock.mergeCartAction.mockResolvedValue({
-      succeeded: [],
-      failed: ["p1"],
+      added: [],
+      skippedStockFull: [],
+      unavailable: [],
+      pending: ["p1"],
     });
     actionsMock.getCartAction.mockResolvedValue([]);
 
-    const { wrapper } = setup({ session: sessionFor("merge-fail") });
+    const { wrapper } = setup({ session: sessionFor("merge-pending-all") });
     const { result } = renderHook(() => useCart(), { wrapper });
 
     await waitFor(() => expect(actionsMock.mergeCartAction).toHaveBeenCalled());
-
-    await waitFor(() => expect(useGuestCart.getState().items).toHaveLength(1));
-    expect(toast.error).toHaveBeenCalledWith("Sync failed", expect.anything());
+    await waitFor(() => expect(result.current.hasPendingMerge).toBe(true));
+    expect(useGuestCart.getState().items).toHaveLength(1);
   });
 
   it("does not re-run the merge for the same user after a re-render", async () => {
     useGuestCart.setState({ items: [item()] });
-    actionsMock.mergeCartAction.mockResolvedValue({ succeeded: ["p1"], failed: [] });
+    actionsMock.mergeCartAction.mockResolvedValue({
+      added: [{ productId: "p1", quantity: 1, requestedQuantity: 1 }],
+      skippedStockFull: [],
+      unavailable: [],
+      pending: [],
+    });
     actionsMock.getCartAction.mockResolvedValue([]);
 
     const { wrapper } = setup({ session: sessionFor("merge-rerender") });
@@ -392,7 +457,7 @@ describe("useCart — merge guest cart on login", () => {
   });
 
   it("exposes isMerging while the merge is in flight", async () => {
-    let resolveMerge: (v: { succeeded: string[]; failed: string[] }) => void = () => {};
+    let resolveMerge: (v: unknown) => void = () => {};
     actionsMock.mergeCartAction.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -402,13 +467,18 @@ describe("useCart — merge guest cart on login", () => {
     actionsMock.getCartAction.mockResolvedValue([]);
     useGuestCart.setState({ items: [item()] });
 
-    const { wrapper } = setup({ session: sessionFor("merge-pending") });
+    const { wrapper } = setup({ session: sessionFor("merge-inflight") });
     const { result } = renderHook(() => useCart(), { wrapper });
 
     await waitFor(() => expect(result.current.isMerging).toBe(true));
 
     await act(async () => {
-      resolveMerge({ succeeded: ["p1"], failed: [] });
+      resolveMerge({
+        added: [{ productId: "p1", quantity: 1, requestedQuantity: 1 }],
+        skippedStockFull: [],
+        unavailable: [],
+        pending: [],
+      });
     });
 
     await waitFor(() => expect(result.current.isMerging).toBe(false));
@@ -416,7 +486,12 @@ describe("useCart — merge guest cart on login", () => {
 
   it("clears the server cart query cache after a successful merge", async () => {
     useGuestCart.setState({ items: [item()] });
-    actionsMock.mergeCartAction.mockResolvedValue({ succeeded: ["p1"], failed: [] });
+    actionsMock.mergeCartAction.mockResolvedValue({
+      added: [{ productId: "p1", quantity: 1, requestedQuantity: 1 }],
+      skippedStockFull: [],
+      unavailable: [],
+      pending: [],
+    });
     actionsMock.getCartAction.mockResolvedValue([item()]);
 
     const { wrapper } = setup({ session: sessionFor("merge-cache") });
@@ -439,29 +514,24 @@ describe("useCart — merge guest cart on login", () => {
 
     expect(actionsMock.mergeCartAction).toHaveBeenCalledTimes(1);
     expect(useGuestCart.getState().items).toHaveLength(1);
-  });
-
-  it("exposes pendingGuestItems and hasPendingMerge after a partial merge", async () => {
-    useGuestCart.setState({
-      items: [item({ productId: "p1", quantity: 1 }), item({ productId: "p2", quantity: 2 })],
-    });
-    actionsMock.mergeCartAction.mockResolvedValue({ succeeded: ["p2"], failed: ["p1"] });
-    actionsMock.getCartAction.mockResolvedValue([]);
-
-    const { wrapper } = setup({ session: sessionFor("merge-pending-items") });
-    const { result } = renderHook(() => useCart(), { wrapper });
-
-    await waitFor(() => expect(actionsMock.mergeCartAction).toHaveBeenCalled());
-    await waitFor(() => expect(result.current.hasPendingMerge).toBe(true));
-
-    expect(result.current.pendingGuestItems.map((i) => i.productId)).toEqual(["p1"]);
+    expect(toast.error).toHaveBeenCalledWith("Sync failed", expect.anything());
   });
 
   it("retryPendingMerge re-merges the remaining guest items", async () => {
     useGuestCart.setState({ items: [item()] });
     actionsMock.mergeCartAction
-      .mockResolvedValueOnce({ succeeded: [], failed: ["p1"] })
-      .mockResolvedValueOnce({ succeeded: ["p1"], failed: [] });
+      .mockResolvedValueOnce({
+        added: [],
+        skippedStockFull: [],
+        unavailable: [],
+        pending: ["p1"],
+      })
+      .mockResolvedValueOnce({
+        added: [{ productId: "p1", quantity: 1, requestedQuantity: 1 }],
+        skippedStockFull: [],
+        unavailable: [],
+        pending: [],
+      });
     actionsMock.getCartAction.mockResolvedValue([]);
 
     const { wrapper } = setup({ session: sessionFor("merge-retry") });
@@ -481,7 +551,12 @@ describe("useCart — merge guest cart on login", () => {
 
   it("discardPendingGuestItems clears the pending items", async () => {
     useGuestCart.setState({ items: [item()] });
-    actionsMock.mergeCartAction.mockResolvedValue({ succeeded: [], failed: ["p1"] });
+    actionsMock.mergeCartAction.mockResolvedValue({
+      added: [],
+      skippedStockFull: [],
+      unavailable: [],
+      pending: ["p1"],
+    });
     actionsMock.getCartAction.mockResolvedValue([]);
 
     const { wrapper } = setup({ session: sessionFor("merge-discard") });

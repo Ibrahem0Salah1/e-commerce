@@ -210,8 +210,16 @@ export async function createOrderForUser(
             include: { items: true },
           });
 
-          // -- Clear user's active DB cart --
-          await tx.cartItem.deleteMany({ where: { userId } });
+          // -- Clear ONLY the ordered products from the user's DB cart. --
+          // A blanket delete here would silently destroy items that belong to
+          // no order: e.g., a guest-merge landing concurrently with checkout,
+          // or an item another tab added after this page loaded.
+          await tx.cartItem.deleteMany({
+            where: {
+              userId,
+              productId: { in: mergedItems.map((i) => i.productId) },
+            },
+          });
 
           // -- Race-condition safe atomic stock decrement (LAST — see NOTE
           //    ON ORDERING above): conditional guard makes oversell impossible

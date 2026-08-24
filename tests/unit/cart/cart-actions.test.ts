@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { authMock, prismaMock, fetchCartItemsMock } = vi.hoisted(() => ({
   authMock: { api: { getSession: vi.fn() } },
@@ -242,22 +242,32 @@ describe("cart server actions", () => {
       expect(prismaMock.cartItem.updateMany).not.toHaveBeenCalled();
     });
 
-    it("updates the quantity for a valid request", async () => {
+    it("updates the quantity for a valid request (atomic cap guard)", async () => {
       mockSession(USER);
       mockProduct({ stock: 10 });
       mockUpdateManyCount(1);
       const result = await updateCartQuantityAction("p1", 7);
       expect(result.success).toBe(true);
       expect(prismaMock.cartItem.updateMany).toHaveBeenCalledWith({
-        where: { userId: "u1", productId: "p1" },
+        where: { userId: "u1", productId: "p1", quantity: { lte: 3 } },
         data: { quantity: 7 },
       });
+    });
+
+    it("reports a stock limit when a concurrent write invalidated the cap", async () => {
+      mockSession(USER);
+      mockProduct({ stock: 10 });
+      mockUpdateManyCount(0); // atomic guard rejected the write
+      mockCartItem({ id: "ci1", userId: "u1", productId: "p1", quantity: 9 });
+      const result = await updateCartQuantityAction("p1", 7);
+      expect(result).toMatchObject({ success: false, toast: { title: "Stock limit reached" } });
     });
 
     it("reports an error when the cart row no longer exists", async () => {
       mockSession(USER);
       mockProduct({ stock: 10 });
       mockUpdateManyCount(0);
+      mockCartItem(null);
       const result = await updateCartQuantityAction("p1", 7);
       expect(result).toMatchObject({ success: false, toast: { title: "Item not in cart" } });
     });
@@ -296,19 +306,24 @@ describe("cart server actions", () => {
   });
 
   describe("mergeCartAction", () => {
-    it("rejects everything when there is no session", async () => {
+    it("keeps everything pending when there is no session", async () => {
       mockSession(null);
       const result = await mergeCartAction([
         { productId: "p1", quantity: 2 },
         { productId: "p2", quantity: 1 },
       ]);
-      expect(result).toEqual({ succeeded: [], failed: ["p1", "p2"] });
+      expect(result).toEqual({
+        added: [],
+        skippedStockFull: [],
+        unavailable: [],
+        pending: ["p1", "p2"],
+      });
     });
 
     it("returns empty results for an empty item list", async () => {
       mockSession(USER);
       const result = await mergeCartAction([]);
-      expect(result).toEqual({ succeeded: [], failed: [] });
+      expect(result).toEqual({ added: [], skippedStockFull: [], unavailable: [], pending: [] });
       expect(prismaMock.$transaction).not.toHaveBeenCalled();
     });
 
@@ -319,11 +334,11 @@ describe("cart server actions", () => {
         { productId: "p2", quantity: -2 },
         { productId: "p3", quantity: 1.5 },
       ]);
-      expect(result).toEqual({ succeeded: [], failed: [] });
+      expect(result).toEqual({ added: [], skippedStockFull: [], unavailable: [], pending: [] });
       expect(prismaMock.$transaction).not.toHaveBeenCalled();
     });
 
-    it("groups duplicate quantities for the same product", async () => {
+    it("groups duplicate quantities and creates the merged row", async () => {
       mockSession(USER);
       mockProductMany([{ id: "p1", stock: 10, isActive: true }]);
       mockCartItemsMany([]);
@@ -333,137 +348,170 @@ describe("cart server actions", () => {
         { productId: "p1", quantity: 3 },
       ]);
 
-      expect(result.succeeded).toEqual(["p1"]);
-      expect(prismaMock.cartItem.updateMany).toHaveBeenCalledWith({
-        where: { userId: "u1", productId: "p1", quantity: { lte: 5 } },
-        data: { quantity: { increment: 5 } },
-      });
+      expect(result.added).toEqual([
+        { productId: "p1", quantity: 5, requestedQuantity: 5 },
+      ]);
       expect(prismaMock.cartItem.create).toHaveBeenCalledWith({
         data: { userId: "u1", productId: "p1", quantity: 5 },
       });
     });
 
-    it("CREATES new rows with the merged quantity (regression)", async () => {
-      mockSession(USER);
-      mockProductMany([
-        { id: "p1", stock: 10, isActive: true },
-        { id: "p2", stock: 20, isActive: true },
-      ]);
-      mockCartItemsMany([]);
-
-      const result = await mergeCartAction([
-        { productId: "p1", quantity: 4 },
-        { productId: "p2", quantity: 2 },
-      ]);
-
-      expect(result).toEqual({ succeeded: ["p1", "p2"], failed: [] });
-      expect(prismaMock.cartItem.create).toHaveBeenCalledTimes(2);
-      expect(prismaMock.cartItem.create).toHaveBeenCalledWith({
-        data: { userId: "u1", productId: "p1", quantity: 4 },
-      });
-      expect(prismaMock.cartItem.create).toHaveBeenCalledWith({
-        data: { userId: "u1", productId: "p2", quantity: 2 },
-      });
-    });
-
-    it("conditionally increments existing rows instead of creating duplicates", async () => {
-      mockSession(USER);
-      mockProductMany([{ id: "p1", stock: 10, isActive: true }]);
-      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 3 }]);
-      mockUpdateManyCount(1);
-
-      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
-
-      expect(result.succeeded).toEqual(["p1"]);
-      expect(prismaMock.cartItem.updateMany).toHaveBeenCalledWith({
-        where: { userId: "u1", productId: "p1", quantity: { lte: 8 } },
-        data: { quantity: { increment: 2 } },
-      });
-      expect(prismaMock.cartItem.create).not.toHaveBeenCalled();
-    });
-
-    it("rejects a product that no longer exists", async () => {
-      mockSession(USER);
-      mockProductMany([{ id: "p1", stock: 10, isActive: true }]);
-      mockCartItemsMany([]);
-
-      const result = await mergeCartAction([{ productId: "ghost", quantity: 1 }]);
-
-      expect(result).toEqual({ succeeded: [], failed: ["ghost"] });
-      expect(prismaMock.cartItem.create).not.toHaveBeenCalled();
-    });
-
-    it("rejects an inactive product", async () => {
-      mockSession(USER);
-      mockProductMany([{ id: "p1", stock: 10, isActive: false }]);
-      mockCartItemsMany([]);
-
-      const result = await mergeCartAction([{ productId: "p1", quantity: 1 }]);
-
-      expect(result.failed).toEqual(["p1"]);
-    });
-
-    it("rejects a product with no stock", async () => {
-      mockSession(USER);
-      mockProductMany([{ id: "p1", stock: 0, isActive: true }]);
-      mockCartItemsMany([]);
-
-      const result = await mergeCartAction([{ productId: "p1", quantity: 1 }]);
-
-      expect(result.failed).toEqual(["p1"]);
-    });
-
-    it("rejects an item that would exceed the stock limit", async () => {
-      mockSession(USER);
-      mockProductMany([{ id: "p1", stock: 5, isActive: true }]);
-      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 4 }]);
-
-      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
-
-      expect(result.failed).toEqual(["p1"]);
-      expect(prismaMock.cartItem.update).not.toHaveBeenCalled();
-    });
-
-    it("accepts an item that lands exactly on the stock limit", async () => {
-      mockSession(USER);
-      mockProductMany([{ id: "p1", stock: 5, isActive: true }]);
-      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 3 }]);
-      mockUpdateManyCount(1);
-
-      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
-
-      expect(result.succeeded).toEqual(["p1"]);
-    });
-
-    it("rejects an item whose quantity alone exceeds stock before creating", async () => {
+    it("clamps a new product to available stock and reports the shortfall", async () => {
       mockSession(USER);
       mockProductMany([{ id: "p1", stock: 3, isActive: true }]);
       mockCartItemsMany([]);
 
       const result = await mergeCartAction([{ productId: "p1", quantity: 4 }]);
 
-      expect(result.failed).toEqual(["p1"]);
+      expect(result.added).toEqual([
+        { productId: "p1", quantity: 3, requestedQuantity: 4 },
+      ]);
+      expect(result.skippedStockFull).toEqual([]);
+      expect(prismaMock.cartItem.create).toHaveBeenCalledWith({
+        data: { userId: "u1", productId: "p1", quantity: 3 },
+      });
+    });
+
+    it("conditionally increments existing rows within stock", async () => {
+      mockSession(USER);
+      mockProductMany([{ id: "p1", stock: 10, isActive: true }]);
+      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 3 }]);
+      mockUpdateManyCount(1);
+
+      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
+
+      expect(result.added).toEqual([
+        { productId: "p1", quantity: 2, requestedQuantity: 2 },
+      ]);
+      expect(prismaMock.cartItem.updateMany).toHaveBeenCalledWith({
+        where: { userId: "u1", productId: "p1", quantity: { lte: 3 } },
+        data: { quantity: { increment: 2 } },
+      });
       expect(prismaMock.cartItem.create).not.toHaveBeenCalled();
     });
 
-    it("reports a mix of succeeded and failed items", async () => {
+    it("clamps an existing row that would overflow stock (partial delta)", async () => {
+      mockSession(USER);
+      mockProductMany([{ id: "p1", stock: 5, isActive: true }]);
+      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 4 }]);
+      // target = min(5, 4+2) = 5, delta = 1
+      prismaMock.cartItem.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
+
+      expect(result.added).toEqual([
+        { productId: "p1", quantity: 1, requestedQuantity: 2 },
+      ]);
+      expect(prismaMock.cartItem.updateMany).toHaveBeenCalledWith({
+        where: { userId: "u1", productId: "p1", quantity: { lte: 4 } },
+        data: { quantity: { increment: 1 } },
+      });
+    });
+
+    it("marks an already-maxed row as skippedStockFull (nothing fits)", async () => {
+      mockSession(USER);
+      mockProductMany([{ id: "p1", stock: 5, isActive: true }]);
+      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 5 }]);
+      // target = min(5, 6) = 5, delta = 0
+
+      const result = await mergeCartAction([{ productId: "p1", quantity: 1 }]);
+
+      expect(result.added).toEqual([]);
+      expect(result.skippedStockFull).toEqual(["p1"]);
+      expect(prismaMock.cartItem.create).not.toHaveBeenCalled();
+      expect(prismaMock.cartItem.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("classifies deleted / inactive / zero-stock products as unavailable", async () => {
+      mockSession(USER);
+      // NOTE: `ghost` is intentionally ABSENT below — deleted products never
+      // come back from the `id in [...]` query.
+      mockProductMany([
+        { id: "p_inactive", stock: 10, isActive: false },
+        { id: "p_nostock", stock: 0, isActive: true },
+      ]);
+      mockCartItemsMany([]);
+
+      const result = await mergeCartAction([
+        { productId: "ghost", quantity: 1 },
+        { productId: "p_inactive", quantity: 1 },
+        { productId: "p_nostock", quantity: 1 },
+      ]);
+
+      expect(result.unavailable.sort()).toEqual(["ghost", "p_inactive", "p_nostock"]);
+      expect(result.added).toEqual([]);
+    });
+
+    it("reports a mix of added / stock-full / unavailable", async () => {
       mockSession(USER);
       mockProductMany([
         { id: "p1", stock: 10, isActive: true },
-        { id: "p2", stock: 0, isActive: true },
-        { id: "p3", stock: 5, isActive: false },
+        { id: "p2", stock: 2, isActive: true },
+        { id: "p3", stock: 0, isActive: true },
       ]);
       mockCartItemsMany([]);
 
       const result = await mergeCartAction([
         { productId: "p1", quantity: 1 },
-        { productId: "p2", quantity: 1 },
+        { productId: "p2", quantity: 5 },
         { productId: "p3", quantity: 1 },
       ]);
 
-      expect(result.succeeded).toEqual(["p1"]);
-      expect(result.failed.sort()).toEqual(["p2", "p3"]);
-      expect(prismaMock.cartItem.create).toHaveBeenCalledTimes(1);
+      expect(result.added).toEqual([
+        { productId: "p1", quantity: 1, requestedQuantity: 1 },
+        { productId: "p2", quantity: 2, requestedQuantity: 5 },
+      ]);
+      expect(result.skippedStockFull).toEqual([]);
+      expect(result.unavailable).toEqual(["p3"]);
+    });
+
+    it("re-reads and applies the best remaining delta when the row shifted mid-tx", async () => {
+      mockSession(USER);
+      mockProductMany([{ id: "p1", stock: 10, isActive: true }]);
+      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 3 }]);
+      // conditional increment loses the race...
+      prismaMock.cartItem.updateMany.mockResolvedValue({ count: 0 });
+      // ...fresh read shows another writer already pushed it to 8...
+      mockCartItem({ id: "ci1", userId: "u1", productId: "p1", quantity: 8 });
+      // ...so only 2 more units fit (target min(10, 8+2)=10).
+      prismaMock.cartItem.update.mockResolvedValue({});
+
+      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
+
+      expect(result.added).toEqual([
+        { productId: "p1", quantity: 2, requestedQuantity: 2 },
+      ]);
+      expect(prismaMock.cartItem.update).toHaveBeenCalledWith({
+        where: { userId_productId: { userId: "u1", productId: "p1" } },
+        data: { quantity: { increment: 2 } },
+      });
+    });
+
+    it("skips when even the re-read leaves no room (row raced past the cap)", async () => {
+      mockSession(USER);
+      mockProductMany([{ id: "p1", stock: 5, isActive: true }]);
+      mockCartItemsMany([{ id: "ci1", productId: "p1", quantity: 4 }]);
+      prismaMock.cartItem.updateMany.mockResolvedValue({ count: 0 });
+      mockCartItem({ id: "ci1", userId: "u1", productId: "p1", quantity: 9 });
+
+      const result = await mergeCartAction([{ productId: "p1", quantity: 2 }]);
+
+      expect(result.skippedStockFull).toEqual(["p1"]);
+      expect(result.added).toEqual([]);
+      expect(prismaMock.cartItem.update).not.toHaveBeenCalled();
+    });
+
+    it("keeps everything pending when the transaction fails unexpectedly", async () => {
+      mockSession(USER);
+      prismaMock.$transaction.mockRejectedValue(new Error("db down"));
+
+      const result = await mergeCartAction([
+        { productId: "p1", quantity: 1 },
+        { productId: "p2", quantity: 2 },
+      ]);
+
+      expect(result.pending).toEqual(["p1", "p2"]);
+      expect(result.added).toEqual([]);
     });
   });
 });

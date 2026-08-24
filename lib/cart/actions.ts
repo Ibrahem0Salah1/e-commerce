@@ -180,13 +180,30 @@ export async function updateCartQuantityAction(
       );
     }
 
+    // Atomic guard: the write re-verifies the cap against live data, closing
+    // the TOCTOU window between the stock read above and this update.
     const updated = await tx.cartItem.updateMany({
-      where: { userId: session.user.id, productId },
+      where: {
+        userId: session.user.id,
+        productId,
+        quantity: { lte: availableStock - quantity },
+      },
       data: { quantity },
     });
 
     if (updated.count === 0) {
-      return error("Item not in cart");
+      const existing = await tx.cartItem.findUnique({
+        where: {
+          userId_productId: { userId: session.user.id, productId },
+        },
+        select: { quantity: true },
+      });
+      return existing
+        ? error(
+            "Stock limit reached",
+            `Only ${availableStock} units available.`,
+          )
+        : error("Item not in cart");
     }
 
     return success("Quantity updated");
@@ -216,12 +233,36 @@ export async function clearCartAction(): Promise<ActionResult> {
 }
 
 /* ── Merge guest cart on login (single server round-trip) ── */
+
+type MergedProduct = {
+  productId: string;
+  /** Units actually stored — may be stock-clamped below requestedQuantity. */
+  quantity: number;
+  requestedQuantity: number;
+};
+
+export type MergeCartOutcome = {
+  /** Stored successfully (possibly stock-clamped). Safe to drop locally. */
+  added: MergedProduct[];
+  /**
+   * Nothing fit — the DB cart already holds this product at (or above) the
+   * stock cap. Safe to drop locally: the account cart already covers it.
+   */
+  skippedStockFull: string[];
+  /** Deleted, deactivated, or zero-stock. Client policy: auto-discard. */
+  unavailable: string[];
+  /** NOT processed at all (no session / unexpected error). Keep locally for retry. */
+  pending: string[];
+};
+
 export async function mergeCartAction(
   items: { productId: string; quantity: number }[],
-): Promise<{ succeeded: string[]; failed: string[] }> {
+): Promise<MergeCartOutcome> {
   const session = await auth.api.getSession({ headers: await headers() });
+  const allIds = items.map((i) => i.productId);
   if (!session?.user) {
-    return { succeeded: [], failed: items.map((i) => i.productId) };
+    // Nothing was processed — caller keeps everything locally and can retry.
+    return { added: [], skippedStockFull: [], unavailable: [], pending: allIds };
   }
 
   // Defensive: the guest store should only ever hold positive integers, but
@@ -229,7 +270,9 @@ export async function mergeCartAction(
   const valid = items.filter(
     (i) => Number.isInteger(i.quantity) && i.quantity > 0,
   );
-  if (valid.length === 0) return { succeeded: [], failed: [] };
+  if (valid.length === 0) {
+    return { added: [], skippedStockFull: [], unavailable: [], pending: [] };
+  }
 
   // Group quantities per product (guest cart may contain duplicates)
   const grouped = new Map<string, number>();
@@ -264,50 +307,90 @@ export async function mergeCartAction(
           existingCartItems.map((ci) => [ci.productId, ci]),
         );
 
-        const succeeded: string[] = [];
-        const failed: string[] = [];
+        const added: MergedProduct[] = [];
+        const skippedStockFull: string[] = [];
+        const unavailable: string[] = [];
 
-        for (const [productId, quantity] of grouped.entries()) {
+        for (const [productId, requested] of grouped.entries()) {
           const meta = stockById.get(productId);
 
+          // Gone from the catalog (or inactive / zero stock) → client discards.
           if (!meta || !meta.isActive || meta.stock <= 0) {
-            failed.push(productId);
-            continue;
-          }
-          if (quantity > meta.stock) {
-            failed.push(productId);
+            unavailable.push(productId);
             continue;
           }
 
-          const updated = await tx.cartItem.updateMany({
-            where: {
-              userId,
+          // Clamp-to-stock: store whatever fits instead of failing the whole
+          // product. wanted=10, stock=6, cart=0 → add 6, report 6-of-10.
+          const currentQty = existingById.get(productId)?.quantity ?? 0;
+          const target = Math.min(meta.stock, currentQty + requested);
+          const delta = target - currentQty;
+
+          if (delta <= 0) {
+            // Already holding everything stock allows — DB cart covers it.
+            skippedStockFull.push(productId);
+            continue;
+          }
+
+          if (currentQty > 0) {
+            // Conditional increment guarded by the snapshot we just read.
+            const updated = await tx.cartItem.updateMany({
+              where: {
+                userId,
+                productId,
+                quantity: { lte: target - delta },
+              },
+              data: { quantity: { increment: delta } },
+            });
+
+            if (updated.count === 1) {
+              added.push({
+                productId,
+                quantity: delta,
+                requestedQuantity: requested,
+              });
+              continue;
+            }
+
+            // Row shifted concurrently inside our own transaction window —
+            // re-read once and apply the best remaining delta.
+            const fresh = await tx.cartItem.findUnique({
+              where: { userId_productId: { userId, productId } },
+              select: { quantity: true },
+            });
+            const freshTarget = Math.min(meta.stock, (fresh?.quantity ?? 0) + delta);
+            if (!fresh || freshTarget <= fresh.quantity) {
+              skippedStockFull.push(productId);
+              continue;
+            }
+            await tx.cartItem.update({
+              where: { userId_productId: { userId, productId } },
+              data: { quantity: { increment: freshTarget - fresh.quantity } },
+            });
+            added.push({
               productId,
-              quantity: { lte: meta.stock - quantity },
-            },
-            data: { quantity: { increment: quantity } },
-          });
-
-          if (updated.count === 1) {
-            succeeded.push(productId);
+              quantity: freshTarget - fresh.quantity,
+              requestedQuantity: requested,
+            });
             continue;
           }
 
-          if (existingById.has(productId)) {
-            failed.push(productId);
-            continue;
-          }
-
+          const createdQty = Math.min(requested, meta.stock);
           await tx.cartItem.create({
-            data: { userId, productId, quantity },
+            data: { userId, productId, quantity: createdQty },
           });
-          succeeded.push(productId);
+          added.push({
+            productId,
+            quantity: createdQty,
+            requestedQuantity: requested,
+          });
         }
 
-        return { succeeded, failed };
+        return { added, skippedStockFull, unavailable, pending: [] };
       }),
     );
   } catch {
-    return { succeeded: [], failed: productIds };
+    // Unexpected failure — nothing committed reliably; keep everything local.
+    return { added: [], skippedStockFull: [], unavailable: [], pending: productIds };
   }
 }
