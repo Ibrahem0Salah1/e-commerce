@@ -43,3 +43,9 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# playwright auth states
+tests/e2e/.auth/
+
+# load-test runtime artifacts
+tests/load/.run/

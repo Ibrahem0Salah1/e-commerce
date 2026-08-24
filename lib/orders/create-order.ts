@@ -157,27 +157,6 @@ export async function createOrderForUser(
             }
           }
 
-          // -- Race-condition safe atomic stock decrement --
-          for (const item of mergedItems) {
-            const decrementResult = await tx.product.updateMany({
-              where: {
-                id: item.productId,
-                stock: { gte: item.quantity },
-              },
-              data: {
-                stock: { decrement: item.quantity },
-              },
-            });
-
-            if (decrementResult.count === 0) {
-              const product = productMap.get(item.productId);
-              throw new OrderError(
-                `Insufficient stock for "${product?.name ?? "an item"}". Someone may have just purchased the remaining units.`,
-                "OUT_OF_STOCK",
-              );
-            }
-          }
-
           // -- Calculate Subtotal and Snapshot Item Data Server-side --
           let subtotal = new Prisma.Decimal(0);
           const orderItemsData = mergedItems.map((item) => {
@@ -196,6 +175,14 @@ export async function createOrderForUser(
               quantity: item.quantity,
             };
           });
+
+          // -- Insert Order & OrderItems in DB --
+          // NOTE ON ORDERING: the hot-row stock decrement runs LAST (below),
+          // right before COMMIT. Row locks are held until commit, so doing the
+          // decrement early would hold the product-row lock across every
+          // subsequent query — collapsing hot-item throughput to
+          // 1/(lockHoldTime). Late-decrement minimizes lock hold time to
+          // roughly one round trip.
 
           // -- Calculate total (coupons disabled for MVP) --
           const total = subtotal.add(shippingMethod.price);
@@ -225,6 +212,30 @@ export async function createOrderForUser(
 
           // -- Clear user's active DB cart --
           await tx.cartItem.deleteMany({ where: { userId } });
+
+          // -- Race-condition safe atomic stock decrement (LAST — see NOTE
+          //    ON ORDERING above): conditional guard makes oversell impossible
+          //    under any isolation level, and holding these row locks only
+          //    until the immediate COMMIT maximizes hot-item throughput. --
+          for (const item of mergedItems) {
+            const decrementResult = await tx.product.updateMany({
+              where: {
+                id: item.productId,
+                stock: { gte: item.quantity },
+              },
+              data: {
+                stock: { decrement: item.quantity },
+              },
+            });
+
+            if (decrementResult.count === 0) {
+              const product = productMap.get(item.productId);
+              throw new OrderError(
+                `Insufficient stock for "${product?.name ?? "an item"}". Someone may have just purchased the remaining units.`,
+                "OUT_OF_STOCK",
+              );
+            }
+          }
 
           return order;
         },

@@ -40,6 +40,13 @@ const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
 const LOADTEST_SECRET = __ENV.LOADTEST_SECRET || "";
 const TEST_EMAIL = __ENV.TEST_EMAIL || "loadtester@mds.test";
 const TEST_PASSWORD = __ENV.TEST_PASSWORD || "LoadTest123!";
+// Optional: reuse an existing session instead of signing in per run.
+// Avoids better-auth's /sign-in/email rate limit (3 per 20 min) during
+// long experiment sessions. Grab once via:
+//   curl -i -X POST %BASE_URL%/api/auth/sign-in/email -H "Content-Type: application/json" ^
+//     -d "{\"email\":\"...\",\"password\":\"...\"}"
+// …and copy the full `better-auth.session_data=…` Set-Cookie value here.
+const SESSION_COOKIE = __ENV.SESSION_COOKIE || "";
 
 const HOT_SLUG = __ENV.HOT_SLUG || "loadtest-hot";
 const SPREAD_PREFIX = __ENV.SPREAD_PREFIX || "loadtest-spread-";
@@ -123,6 +130,12 @@ export function setup() {
     throw new Error("LOADTEST_SECRET env var is required");
   }
 
+  let cookie = "";
+
+  if (SESSION_COOKIE) {
+    // Pre-authenticated session provided — skip login (and its rate limit).
+    cookie = SESSION_COOKIE;
+  } else {
   const loginRes = http.post(
     `${BASE_URL}/api/auth/sign-in/email`,
     JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }),
@@ -130,11 +143,12 @@ export function setup() {
   );
   check(loginRes, { "signed in": (r) => r.status === 200 });
 
-  const cookie = loginRes.headers["Set-Cookie"];
+    cookie = loginRes.headers["Set-Cookie"];
   if (!cookie) {
     throw new Error(
       `Sign-in failed (status ${loginRes.status}). Create the test user first â€” see README.`,
     );
+  }
   }
 
   const slugs = [HOT_SLUG];
