@@ -34,12 +34,20 @@ export const adminRatelimit = new Ratelimit({
   prefix: "ratelimit:admin",
 });
 
-// ── Specialized: Checkout (prevent double-submit) ──
+// ── Specialized: Checkout per-user (prevent double-submit / spam) ──
 export const checkoutRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "5 m"), // 5 checkouts per 5 min
   analytics: true,
   prefix: "ratelimit:checkout",
+});
+
+// ── Specialized: Checkout per-IP (catch multi-account abuse) ──
+export const checkoutIpRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "5 m"), // 10 checkout attempts per IP
+  analytics: true,
+  prefix: "ratelimit:checkout-ip",
 });
 
 // ── Helper: Extract IP from request headers ──

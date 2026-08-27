@@ -11,6 +11,7 @@ const ibm = IBM_Plex_Sans({
   variable: "--font-sans",
 })
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://mds-woad.vercel.app"),
   title: "MDS",
   description: "Medical and dental Store",
 };

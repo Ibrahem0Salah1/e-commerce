@@ -14,9 +14,19 @@ interface AddToCartButtonProps {
     stock: number | null;
     images: string[];
   };
+  /**
+   * solid  — filled primary circle (product detail page)
+   * overlay — transparent button with primary icon, floats on imagery
+   */
+  variant?: "solid" | "overlay";
+  className?: string;
 }
 
-export function AddToCartButton({ product }: AddToCartButtonProps) {
+export function AddToCartButton({
+  product,
+  variant = "solid",
+  className,
+}: AddToCartButtonProps) {
   const { addItem, items } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -58,10 +68,16 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       aria-label="Add to cart"
       className={cn(
         "flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200",
-        added
-          ? "bg-green-600 text-white"
-          : "bg-primary text-primary-foreground hover:bg-primary/90",
         "disabled:pointer-events-none disabled:opacity-40",
+        variant === "overlay"
+          ? cn(
+              "bg-transparent text-primary hover:bg-primary/10",
+              added && "text-green-600",
+            )
+          : added
+            ? "bg-green-600 text-white"
+            : "bg-primary text-primary-foreground hover:bg-primary/90",
+        className,
       )}
     >
       {added ? (

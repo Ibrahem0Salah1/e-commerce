@@ -2,19 +2,36 @@
 
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signInSchema } from "@/lib/validations";
-import type { SignInFormFields } from "@/lib/types";
-import { signInAction } from "@/lib/auth/actions";
-import { signIn } from "@/lib/auth/client";
+import { signInSchema, otpSchema } from "@/lib/validations";
+import type { SignInFormFields, OtpForm } from "@/lib/types";
+import { authClient, signIn } from "@/lib/auth/client";
+import { mapAuthError } from "@/lib/auth/client-errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useAuthUI } from "@/components/auth/AuthLayout";
+import { useAuthUI } from "@/components/auth/AuthUIProvider";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
-export default function SignIn({ callbackUrl = "/" }: { callbackUrl?: string }) {
+type SignInProps = {
+    callbackUrl?: string;
+    /** Provided by <AuthModal> to switch modes in place instead of navigating. */
+    onSwitchToSignUp?: () => void;
+};
+
+export default function SignIn({
+    callbackUrl = "/",
+    onSwitchToSignUp,
+}: SignInProps) {
+    const router = useRouter();
     const { setIsOAuthPending } = useAuthUI();
+    const [step, setStep] = useState<"form" | "otp">("form");
+    const [otpError, setOtpError] = useState<string | null>(null);
+    const [otpSending, setOtpSending] = useState(false);
+    const otpSent = useRef(false);
+
     const {
         register,
         handleSubmit,
@@ -25,25 +42,117 @@ export default function SignIn({ callbackUrl = "/" }: { callbackUrl?: string }) 
         defaultValues: { email: "", password: "" },
     });
 
-    const onSubmit: SubmitHandler<SignInFormFields> = async (data) => {
-        const result = await signInAction(data.email, data.password, callbackUrl);
-        if (result?.error) {
-            setError("root", { message: result.error });
+    const otpForm = useForm<OtpForm>({
+        resolver: zodResolver(otpSchema),
+        defaultValues: { otp: "" },
+    });
+
+    useEffect(() => {
+        if (step === "otp" && !otpSent.current) {
+            otpSent.current = true;
+            setOtpSending(true);
+            authClient.twoFactor.sendOtp().then(({ error }) => {
+                setOtpSending(false);
+                if (error) setOtpError(error.message ?? "Failed to send code");
+            });
         }
+        if (step === "form") {
+            otpSent.current = false;
+        }
+    }, [step]);
+
+    const onSubmit: SubmitHandler<SignInFormFields> = async (data) => {
+        const { data: result, error } = await signIn.email({
+            email: data.email,
+            password: data.password,
+        });
+
+        if (error) {
+            setError("root", { message: mapAuthError(error, "signin") });
+            return;
+        }
+
+        if ((result as { twoFactorRedirect?: boolean })?.twoFactorRedirect) {
+            setStep("otp");
+            return;
+        }
+
+        router.push(callbackUrl);
+        router.refresh();
     };
 
     const handleOAuth = async (provider: "google") => {
         setIsOAuthPending(true);
-
+        setOtpError(null);
         try {
-            await signIn.social({
+            const { data, error } = await signIn.social({
                 provider,
                 callbackURL: callbackUrl,
             });
+            if (error) {
+                setIsOAuthPending(false);
+                setError("root", { message: mapAuthError(error, "signin") });
+                return;
+            }
+            if ((data as { twoFactorRedirect?: boolean })?.twoFactorRedirect) {
+                setIsOAuthPending(false);
+                setStep("otp");
+                return;
+            }
         } catch {
             setIsOAuthPending(false);
         }
     };
+
+    const handleVerifyOtp = async (values: OtpForm) => {
+        setOtpError(null);
+        const { error } = await authClient.twoFactor.verifyOtp({
+            code: values.otp,
+            trustDevice: true,
+        });
+        if (error) {
+            setOtpError(error.message ?? "Invalid code");
+            return;
+        }
+        router.push(callbackUrl);
+        router.refresh();
+    };
+
+    if (step === "otp") {
+        return (
+            <div className="w-full space-y-4">
+                <div className="text-center">
+                    <h2 className="text-lg font-semibold">Enter Verification Code</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {otpSending ? "Sending code..." : "Check your email for the security code"}
+                    </p>
+                </div>
+                <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-3">
+                    <div className="space-y-1">
+                        <Label htmlFor="otp-signin">Verification code</Label>
+                        <Input
+                            id="otp-signin"
+                            placeholder="123456"
+                            maxLength={6}
+                            autoFocus
+                            disabled={otpSending}
+                            {...otpForm.register("otp")}
+                        />
+                        {otpForm.formState.errors.otp && (
+                            <p className="text-xs text-destructive">{otpForm.formState.errors.otp.message}</p>
+                        )}
+                    </div>
+                    {otpError && <p className="text-sm text-destructive">{otpError}</p>}
+                    <Button type="submit" className="w-full h-11" disabled={otpSending || otpForm.formState.isSubmitting}>
+                        {otpSending ? "Sending..." : otpForm.formState.isSubmitting ? "Verifying..." : "Verify"}
+                    </Button>
+                    <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("form")}>
+                        Back to sign in
+                    </Button>
+                </form>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full space-y-5">
@@ -136,16 +245,6 @@ export default function SignIn({ callbackUrl = "/" }: { callbackUrl?: string }) 
                     )}
                 </Button>
             </form>
-
-            <p className="text-center text-sm text-[var(--muted-foreground)]">
-                New to MDS?{" "}
-                <Link
-                    href="/auth/signup"
-                    className="font-medium text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline"
-                >
-                    Join now
-                </Link>
-            </p>
         </div>
     );
 }
@@ -159,7 +258,7 @@ function Spinner() {
     );
 }
 
-function GoogleIcon() {
+export function GoogleIcon() {
     return (
         <svg width="18" height="18" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

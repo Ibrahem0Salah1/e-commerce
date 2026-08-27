@@ -34,13 +34,13 @@ export default function CategoriesMenuClient({ categories, brands }: CategoriesM
             onMouseLeave={() => setOpen(false)}
         >
             <button
-                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+                className="inline-flex items-center gap-1  py-2 text-sm font-medium  hover:text-accent-foreground transition-colors"
                 type="button"
             >
                 Categories
                 <ChevronDown
                     className={cn(
-                        "h-4 w-4 transition-transform duration-200",
+                        "h-3 w-3 transition-transform duration-200",
                         open && "rotate-180"
                     )}
                 />
@@ -57,11 +57,11 @@ export default function CategoriesMenuClient({ categories, brands }: CategoriesM
                         ? "opacity-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 -translate-y-1 pointer-events-none"
                 )}
-                style={{ width: "min(920px, 90vw)" }}
+                style={{ width: "min(1000px, 90vw)" }}
             >
-                <div className="grid grid-cols-[240px_1fr] overflow-hidden rounded-xl border border-border/60 bg-popover/95 backdrop-blur shadow-xl">
+                <div className="grid py-4 grid-cols-[260px_1fr] overflow-hidden rounded-xl border border-border/60 bg-popover/95 backdrop-blur shadow-xl">
                     {/* Left: categories + brands */}
-                    <ul className="border-r border-border/60 bg-muted/30 py-2 max-h-[70vh] overflow-y-auto">
+                    <ul className="border-r border-border/60 bg-muted/30 py-2 max-h-[65vh] overflow-y-auto">
                         {categories.map((cat) => {
                             const isActive = activeId === cat.id;
                             return (

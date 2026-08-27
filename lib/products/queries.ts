@@ -12,7 +12,32 @@ import type { ProductFilters } from "@/lib/products/filters";
 import {
   productListDisplaySelect,
   productDetailDisplaySelect,
+  type ProductListRaw,
 } from "@/lib/products/selects";
+import { getAverageRatingsByIds } from "@/lib/reviews/queries";
+
+/** Shared row mapper: raw product rows + batched rating map → list items. */
+function toProductListItems(
+  products: ProductListRaw[],
+  ratingById: Map<string, number>,
+) {
+  return products.map(
+    ({ _count, price, description, family, ...rest }) => ({
+      ...rest,
+      category: family?.category ?? null,
+      family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
+      description: description ?? [],
+      price: Number(price),
+      reviewCount: _count.reviews,
+      rating: ratingById.get(rest.id) ?? null,
+    }),
+  );
+}
+
+/** Batched average-rating lookup for a page of products (ONE groupBy). */
+async function loadRatingMap(products: ProductListRaw[]) {
+  return getAverageRatingsByIds(products.map((p) => p.id));
+}
 
 // ============================================================================
 // DISPLAY QUERIES (CACHED IN REDIS — NO STOCK)
@@ -53,24 +78,8 @@ async function queryProductsDisplay(filters: ProductFilters) {
     prisma.product.count({ where }),
   ]);
 
-  const data = products.map(
-    ({ reviews, _count, price, description, family, ...rest }) => {
-      const avgRating =
-        reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-          : null;
-
-      return {
-        ...rest,
-        category: family?.category ?? null,
-        family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
-        description: description ?? [],
-        price: Number(price),
-        reviewCount: _count.reviews,
-        rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
-      };
-    },
-  );
+  const ratingById = await loadRatingMap(products);
+  const data = toProductListItems(products, ratingById);
 
   return {
     products: data,
@@ -94,7 +103,7 @@ export async function getProductsServer(filters: ProductFilters) {
   return getCached(key, () => queryProductsDisplay(filters), 7200);
 }
 
-/** Cached featured products (display only). TTL: 1 hour. */
+/** Cached featured products (display only). TTL: 3 hours. */
 export async function getFeaturedProducts() {
   return getCached(
     "products:featured",
@@ -106,30 +115,13 @@ export async function getFeaturedProducts() {
         select: productListDisplaySelect,
       });
 
-      return products.map(
-        ({ reviews, _count, price, description, family, ...rest }) => {
-          const avgRating =
-            reviews.length > 0
-              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-              : null;
-
-          return {
-            ...rest,
-            category: family?.category ?? null,
-            family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
-            description: description ?? [],
-            price: Number(price),
-            reviewCount: _count.reviews,
-            rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
-          };
-        },
-      );
+      return toProductListItems(products, await loadRatingMap(products));
     },
     10800, //3 hours
   );
 }
 
-/** Cached bestseller products (display only). TTL: 1 hour. */
+/** Cached bestseller products (display only). TTL: 3 hours. */
 export async function getBestsellerProducts() {
   return getCached(
     "products:bestseller",
@@ -141,30 +133,13 @@ export async function getBestsellerProducts() {
         select: productListDisplaySelect,
       });
 
-      return products.map(
-        ({ reviews, _count, price, description, family, ...rest }) => {
-          const avgRating =
-            reviews.length > 0
-              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-              : null;
-
-          return {
-            ...rest,
-            category: family?.category ?? null,
-            family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
-            description: description ?? [],
-            price: Number(price),
-            reviewCount: _count.reviews,
-            rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
-          };
-        },
-      );
+      return toProductListItems(products, await loadRatingMap(products));
     },
     10800, //3 hours
   );
 }
 
-/** Cached all products (display only). TTL: 1 hour. */
+/** Cached all products (display only). TTL: 2 hours. */
 export async function getAllProducts() {
   return getCached(
     "products:all",
@@ -175,24 +150,7 @@ export async function getAllProducts() {
         select: productListDisplaySelect,
       });
 
-      return products.map(
-        ({ reviews, _count, price, description, family, ...rest }) => {
-          const avgRating =
-            reviews.length > 0
-              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-              : null;
-
-          return {
-            ...rest,
-            category: family?.category ?? null,
-            family: family ? { id: family.id, name: family.name, slug: family.slug } : null,
-            description: description ?? [],
-            price: Number(price),
-            reviewCount: _count.reviews,
-            rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
-          };
-        },
-      );
+      return toProductListItems(products, await loadRatingMap(products));
     },
     7200,
   );
@@ -212,13 +170,15 @@ export async function getProductBySlug(slug: string) {
 
       if (!product) return null;
 
+      // Accurate average over ALL reviews (the loaded rows above are only the
+      // latest 10, kept for the review cards — never use them for the average).
+      const reviewAgg = await prisma.review.aggregate({
+        where: { productId: product.id },
+        _avg: { rating: true },
+      });
       const avgRating =
-        product.reviews.length > 0
-          ? Math.round(
-            (product.reviews.reduce((sum, r) => sum + r.rating, 0) /
-              product.reviews.length) *
-            10,
-          ) / 10
+        reviewAgg._avg.rating != null
+          ? Math.round(reviewAgg._avg.rating * 10) / 10
           : null;
 
       const { family, attributeValues, ...productData } = product;

@@ -24,7 +24,6 @@ export default async function ShopPage({
 
   // ← CHANGED: use the wrapper that merges fresh inventory
   const productsPromise = getProductsServerWithInventory(filters);
-
   return (
     <div className="relative space-y-4">
       <ShopBreadcrumbs categories={categories} brands={brands} />

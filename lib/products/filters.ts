@@ -49,7 +49,7 @@ export const filtersParsers = {
     "price_desc",
     "name",
     "newest",
-    "stock_asc",
+    "stock_asc",  
     "stock_desc",
   ]).withDefault("name"),
   page: parseAsInteger

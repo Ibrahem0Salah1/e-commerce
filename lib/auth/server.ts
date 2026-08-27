@@ -91,6 +91,20 @@ export const auth = betterAuth({
       },
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user: any) => {
+          if (user.role === "ADMIN" && !user.twoFactorEnabled) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { twoFactorEnabled: true },
+            });
+          }
+        },
+      },
+    },
+  },
   account: {
     accountLinking: {
       enabled: true,
@@ -98,7 +112,7 @@ export const auth = betterAuth({
     },
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 7,
+    expiresIn: 60 * 60 * 24 * 7, //
     updateAge: 60 * 60 * 24,
   },
   advanced: {

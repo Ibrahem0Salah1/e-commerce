@@ -24,7 +24,7 @@ export const adminProductsListSelect = {
     },
   },
   brand: { select: { id: true, name: true, slug: true, logo: true } },
-  reviews: { select: { rating: true } },
+  // ratings are fetched via one batched review.groupBy — see lib/reviews/queries.ts
   _count: { select: { reviews: true } },
 } satisfies Prisma.ProductSelect;
 

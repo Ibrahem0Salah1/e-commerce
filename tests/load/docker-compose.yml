@@ -1,0 +1,45 @@
+# tests/load/docker-compose.yml
+#
+# Local load-test database fronted by Toxiproxy so we can inject realistic
+# network latency between the app and Postgres.
+#
+#   App connects to : postgresql://loadtest:loadtest@127.0.0.1:15432/ecommerce_loadtest
+#   Toxiproxy API   : http://127.0.0.1:8474            (used by proxy.ps1)
+#   Direct DB port  : 127.0.0.1:15433                  (bypasses proxy — admin only)
+#
+# Start:      docker compose -f tests/load/docker-compose.yml up -d
+# Stop/keep:  docker compose -f tests/load/docker-compose.yml down   (data persists)
+
+name: checkout-loadtest
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: loadtest
+      POSTGRES_PASSWORD: loadtest
+      POSTGRES_DB: ecommerce_loadtest
+    ports:
+      - "127.0.0.1:15433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loadtest -d ecommerce_loadtest"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.12.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["--host", "0.0.0.0", "--port", "8474"]
+    ports:
+      - "127.0.0.1:15432:15432" # proxied DB port (app-facing)
+      - "127.0.0.1:8474:8474" # REST API for proxy.ps1
+
+volumes:
+  pgdata:
