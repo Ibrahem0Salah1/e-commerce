@@ -56,11 +56,14 @@ export async function signUpAction(
   name: string,
   email: string,
   password: string,
+  callbackURL = "/",
 ) {
   const parsed = signUpSchema.safeParse({ name, email, password });
   if (!parsed.success) {
     return { error: parsed.error.message };
   }
+
+  const redirectTo = safeRedirectPath(callbackURL);
 
   try {
     await auth.api.signUpEmail({
@@ -68,7 +71,7 @@ export async function signUpAction(
         name: parsed.data.name,
         email: parsed.data.email,
         password: parsed.data.password,
-        callbackURL: "/",
+        callbackURL: redirectTo,
       },
       headers: await headers(),
     });
@@ -85,7 +88,7 @@ export async function signUpAction(
     console.log(e);
   }
 
-  redirect("/");
+  redirect(redirectTo);
 }
 
 export async function signOutAction() {

@@ -18,7 +18,7 @@ export function PendingMergeBanner() {
   const count = pendingGuestItems.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-sm border border-amber-200 bg-amber-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
         <div>
@@ -37,6 +37,7 @@ export function PendingMergeBanner() {
         <Button
           variant="outline"
           size="sm"
+          className="rounded-sm"
           onClick={retryPendingMerge}
           disabled={isMerging}
         >
@@ -46,6 +47,7 @@ export function PendingMergeBanner() {
         <Button
           variant="ghost"
           size="sm"
+          className="rounded-sm"
           onClick={discardPendingGuestItems}
           disabled={isMerging}
         >

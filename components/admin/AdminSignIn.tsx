@@ -15,7 +15,13 @@ import type { OtpForm, SignInFormFields } from "@/lib/types"
 
 
 
-export default function AdminSignIn({ callbackUrl = "/" }: { callbackUrl?: string }) {
+export default function AdminSignIn({
+  callbackUrl = "/",
+  hideSocial = false,
+}: {
+  callbackUrl?: string;
+  hideSocial?: boolean;
+}) {
     const [step, setStep] = useState<"credentials" | "otp">("credentials")
     const [error, setError] = useState<string | null>(null)
     const [otpSending, setOtpSending] = useState(false)
@@ -82,11 +88,24 @@ export default function AdminSignIn({ callbackUrl = "/" }: { callbackUrl?: strin
         }
     }
 
-    const handleGoogleSignIn = () => {
-        authClient.signIn.social({
+    const handleGoogleSignIn = async () => {
+        setError(null)
+        const { data, error } = await authClient.signIn.social({
             provider: "google",
             callbackURL: callbackUrl,
         })
+
+        if (error) {
+            setError(error.message ?? "Google sign-in failed")
+            return
+        }
+
+        // If Better-Auth returns twoFactorRedirect for an admin with 2FA enabled,
+        // show OTP step like email flow. Otherwise the SDK will have redirected
+        // via callbackURL already — no further action needed.
+        if ((data as { twoFactorRedirect?: boolean })?.twoFactorRedirect) {
+            setStep("otp")
+        }
     }
 
     if (step === "otp") {
@@ -185,23 +204,27 @@ export default function AdminSignIn({ callbackUrl = "/" }: { callbackUrl?: strin
                 </Button>
             </form>
 
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
-            </div>
+            {!hideSocial && (
+                <>
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                        </div>
+                    </div>
 
-            <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleSignIn}
-            >
-                Sign In with Google
-            </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleGoogleSignIn}
+                    >
+                        Sign In with Google
+                    </Button>
+                </>
+            )}
         </div>
     )
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,11 +17,27 @@ import {
 } from "@/components/ui/sheet";
 import { useCart } from "@/hooks/useCart";
 import { formatNumber } from "@/lib/utils/format";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 export function CartButton() {
-  const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart } =
+  const router = useRouter();
+  const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart, isLoggedIn, isMerging } =
     useCart();
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+
+  const handleCheckout = () => {
+    if (!isLoggedIn) {
+      setSheetOpen(false);
+      // Small delay so sheet close animation finishes before modal opens.
+      window.setTimeout(() => setAuthOpen(true), 200);
+      return;
+    }
+    if (isMerging) return;
+    setSheetOpen(false);
+    router.push("/checkout");
+  };
 
   const handleClearAll = () => {
     if (confirmingClear) {
@@ -33,21 +50,22 @@ export function CartButton() {
   };
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative hover:bg-secondary cursor-pointer"
-        >
-          <ShoppingCart className="h-5 w-5" />
-          {totalItems > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
-              {totalItems > 99 ? "99+" : totalItems}
-            </span>
-          )}
-        </Button>
-      </SheetTrigger>
+    <>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative hover:bg-secondary cursor-pointer"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {totalItems > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                {totalItems > 99 ? "99+" : totalItems}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
 
       {/* Full width on mobile, fixed width on desktop */}
       <SheetContent
@@ -196,11 +214,17 @@ export function CartButton() {
               </div>
 
               <div className="flex w-full flex-col gap-2">
-                <SheetClose asChild>
-                  <Button asChild size="lg" className="w-full rounded-sm">
-                    <Link href="/checkout">Checkout</Link>
-                  </Button>
-                </SheetClose>
+                <Button
+                  size="lg"
+                  className="w-full rounded-sm"
+                  onClick={handleCheckout}
+                  disabled={isMerging}
+                >
+                  {isMerging ? "Syncing…" : "Checkout"}
+                </Button>
+                {!isLoggedIn && items.length > 0 && (
+                  <p className="text-xs text-muted-foreground text-center">Sign in required to checkout</p>
+                )}
                 <SheetClose asChild>
                   <Button
                     asChild
@@ -216,6 +240,9 @@ export function CartButton() {
           </>
         )}
       </SheetContent>
-    </Sheet>
+      </Sheet>
+
+      <AuthModal open={authOpen} onOpenChange={setAuthOpen} callbackUrl="/cart" />
+    </>
   );
 }
