@@ -64,8 +64,6 @@ export function EditProductDialog({
     archived: product.archived,
     featured: product.featured,
     bestSeller: product.bestSeller,
-    price: Number(product.price) || 0,
-    stock: product.stock ?? 0,
     sku: product.sku ?? "",
     sizeValueId: "",
     unitValueId: "",
@@ -150,8 +148,6 @@ export function EditProductDialog({
         archived: data.archived,
         featured: data.featured,
         bestSeller: data.bestSeller,
-        price: data.price,
-        stock: data.stock,
         sku: data.sku.trim() || null,
         attributes,
         specGroups,
@@ -194,11 +190,19 @@ export function EditProductDialog({
               onNameManuallyEdited={() => {}}
             />
 
-            <PricingInventorySection />
+            <PricingInventorySection
+              variant="edit"
+              readOnlyPricing={{
+                price: Number(product.price),
+                stock: product.stock ?? 0,
+                costPrice: product.costPrice !== null && product.costPrice !== undefined ? Number(product.costPrice) : null,
+                marginPercent: product.marginPercent !== null && product.marginPercent !== undefined ? Number(product.marginPercent) : null,
+              }}
+            />
 
             <AttributesSection attributeTypes={attributeTypes} />
 
-            <MetadataSection />
+            <MetadataSection variant="edit" />
 
             <div className="flex justify-end gap-3 pt-2">
               <Button

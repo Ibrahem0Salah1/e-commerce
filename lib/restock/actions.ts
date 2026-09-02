@@ -38,6 +38,11 @@ export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
         (line.costPrice * (1 + line.marginPercent / 100)).toFixed(2),
       );
 
+      // Do not resurrect archived products — require manual unarchive first.
+      const existing = await tx.product.findUnique({
+        where: { id: line.productId },
+        select: { archived: true, isActive: true },
+      });
       await tx.product.update({
         where: { id: line.productId },
         data: {
@@ -45,6 +50,8 @@ export async function createPurchaseInvoiceAndInvalidate(raw: unknown) {
           marginPercent: line.marginPercent,
           price: sellingPrice,
           stock: { increment: line.quantityAdded },
+          // auto-activate only if not archived; archived stays archived
+          ...(existing?.archived ? {} : { isActive: true }),
         },
       });
 

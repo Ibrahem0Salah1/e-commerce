@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { signInSchema, otpSchema } from "@/lib/validations"
 import type { OtpForm, SignInFormFields } from "@/lib/types"
-
+import { markCurrentSessionAsStepUpVerified } from "@/lib/auth/admin-2fa-actions";
 
 
 
@@ -72,21 +72,22 @@ export default function AdminSignIn({
     }
 
     const handleVerifyOtp = async (values: OtpForm) => {
-        setError(null)
-        const { data, error } = await authClient.twoFactor.verifyOtp({
-            code: values.otp,
-            trustDevice: true,
-        })
+  setError(null)
+  const { data, error } = await authClient.twoFactor.verifyOtp({
+    code: values.otp,
+    trustDevice: true,
+  })
 
-        if (error) {
-            setError(error.message ?? "Invalid verification code")
-            return
-        }
+  if (error) {
+    setError(error.message ?? "Invalid verification code")
+    return
+  }
 
-        if (data) {
-            router.push(callbackUrl)
-        }
-    }
+  if (data) {
+    await markCurrentSessionAsStepUpVerified()
+    router.push(callbackUrl)
+  }
+}
 
     const handleGoogleSignIn = async () => {
         setError(null)

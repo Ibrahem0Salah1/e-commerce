@@ -157,8 +157,6 @@ describe("useProductForm", () => {
       form.setValue("name", "Test Product");
       form.setValue("slug", slugify("Test Product"));
       form.setValue("description", "Line one\nLine two");
-      form.setValue("price", 100);
-      form.setValue("stock", 5);
       form.setValue("images", ["https://r2.example.com/a.jpg"]);
     });
 
@@ -171,8 +169,6 @@ describe("useProductForm", () => {
         name: "Test Product",
         slug: "test-product",
         description: ["Line one", "Line two"],
-        price: 100,
-        stock: 5,
         sku: undefined,
         familyId: "fam1",
         attributes: [
@@ -197,8 +193,6 @@ describe("useProductForm", () => {
       form.setValue("familyId", "fam1");
       form.setValue("name", "Test Product");
       form.setValue("slug", slugify("Test Product"));
-      form.setValue("price", 100);
-      form.setValue("stock", 5);
       form.setValue("images", ["https://r2.example.com/a.jpg"]);
     });
 

@@ -9,8 +9,6 @@ const validForm = () => ({
   slug: "amalgam-capsule",
   description: "Line one\nLine two",
   madeIn: "Germany",
-  price: 120,
-  stock: 15,
   sku: "AMG-1",
   images: ["https://r2.example.com/a.jpg"],
   categoryId: "cat1",
@@ -50,25 +48,14 @@ describe("editProductFormSchema (client form)", () => {
     }
   });
 
-  it("rejects a zero or negative price", () => {
-    expect(
-      editProductFormSchema.safeParse({ ...validForm(), price: 0 }).success,
-    ).toBe(false);
-    expect(
-      editProductFormSchema.safeParse({ ...validForm(), price: -5 }).success,
-    ).toBe(false);
-  });
-
-  it("rejects a negative stock", () => {
-    expect(
-      editProductFormSchema.safeParse({ ...validForm(), stock: -1 }).success,
-    ).toBe(false);
-  });
-
-  it("rejects a fractional stock", () => {
-    expect(
-      editProductFormSchema.safeParse({ ...validForm(), stock: 2.5 }).success,
-    ).toBe(false);
+  it("ignores price/stock — they are managed via restock, not edit", () => {
+    const withPricing = { ...validForm(), price: 0, stock: -1 } as Record<string, unknown>;
+    const result = editProductFormSchema.safeParse(withPricing);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("price");
+      expect(result.data).not.toHaveProperty("stock");
+    }
   });
 
   it("rejects an empty images array", () => {
@@ -150,8 +137,6 @@ describe("updateProductSchema (server payload)", () => {
     archived: false,
     featured: false,
     bestSeller: true,
-    price: 120,
-    stock: 15,
     sku: "AMG-1",
     attributes: [{ attributeTypeId: "t1", attributeValueId: "v1" }],
     specGroups: [

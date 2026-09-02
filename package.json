@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "postinstall": "prisma generate",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build" : "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -14,7 +15,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
-    "create-admin": "tsx scripts/script.js"
+    "create-admin": "tsx prisma/seed-admins.ts"
   },
   "crons": [
     {
@@ -41,6 +42,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "curl": "^0.1.4",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.40.0",
     "jsdom": "^29.1.1",
@@ -54,6 +57,7 @@
     "react-dom": "19.2.4",
     "react-dropzone": "^20.0.0",
     "react-hook-form": "^7.78.0",
+    "recharts": "^3.10.1",
     "resend": "^6.17.1",
     "server-only": "^0.0.1",
     "shadcn": "^4.11.0",

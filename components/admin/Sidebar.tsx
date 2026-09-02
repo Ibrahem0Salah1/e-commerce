@@ -13,6 +13,7 @@ import {
   Truck,
   Receipt,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/restock", label: "Restock", icon: Truck },
   { href: "/admin/invoices", label: "Invoices", icon: Receipt },
+  { href: "/admin/sales", label: "Sales", icon: BarChart3 },
   { href: "/admin/categories", label: "Categories", icon: ListTree },
   { href: "/admin/brands", label: "Brands", icon: Building2 },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },

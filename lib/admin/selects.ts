@@ -39,6 +39,8 @@ export const adminProductDetailSelect = {
   description: true,
   madeIn: true,
   price: true,
+  costPrice: true,
+  marginPercent: true,
   stock: true,
   sku: true,
   images: true,

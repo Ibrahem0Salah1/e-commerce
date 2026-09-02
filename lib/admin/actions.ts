@@ -25,11 +25,13 @@ export async function addProductAndInvalidate(raw: unknown) {
         slug: data.slug,
         description: data.description,
         madeIn: data.madeIn,
-        price: data.price,
-        stock: data.stock,
+        price: 0,
+        stock: 0,
+        costPrice: null,
+        marginPercent: null,
         ...(data.sku ? { sku: data.sku } : {}),
         images: data.images,
-        isActive: data.isActive,
+        isActive: false,
         archived: data.archived,
         featured: data.featured,
         bestSeller: data.bestSeller,
@@ -88,6 +90,19 @@ export async function updateProductAndInvalidate(
   const data = updateProductSchema.parse(raw);
 
   const updated = await prisma.$transaction(async (tx) => {
+    const existing = await tx.product.findUnique({
+      where: { id: productId },
+      select: { costPrice: true, isActive: true },
+    });
+    if (!existing) throw new Error("Product not found.");
+
+    // Gate: cannot activate a product that has never been restocked (no cost basis)
+    if (data.isActive && !existing.isActive && existing.costPrice === null) {
+      throw new Error(
+        "Cannot activate product with no cost basis. Restock it first to set price and stock.",
+      );
+    }
+
     const updated = await tx.product.update({
       where: { id: productId },
       data: {
@@ -102,8 +117,6 @@ export async function updateProductAndInvalidate(
         archived: data.archived,
         featured: data.featured,
         bestSeller: data.bestSeller,
-        price: data.price,
-        stock: data.stock,
         sku: data.sku || null,
       },
     });
@@ -175,8 +188,14 @@ export async function toggleProductActiveAndInvalidate(productId: string) {
 
   const product = await prisma.product.findUniqueOrThrow({
     where: { id: productId },
-    select: { isActive: true, slug: true },
+    select: { isActive: true, slug: true, costPrice: true },
   });
+
+  if (!product.isActive && product.costPrice === null) {
+    throw new Error(
+      "Cannot activate product with no cost basis. Restock it first to set price and stock.",
+    );
+  }
 
   await prisma.product.update({
     where: { id: productId },

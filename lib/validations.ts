@@ -149,14 +149,11 @@ export const addProductFormSchema = z.object({
   slug: z.string().min(1, "Slug is required"),
   description: z.string(),
   madeIn: z.string(),
-  price: z.number().min(0.01, "Price must be greater than 0"),
-  stock: z.number().int().min(0, "Stock cannot be negative"),
   sku: z.string(),
   images: z.array(z.string().url()).min(1, "At least one image required").max(5),
   categoryId: z.string().min(1, "Category is required"),
   familyId: z.string().min(1, "Family is required"),
   brandId: z.string(),
-  isActive: z.boolean(),
   archived: z.boolean(),
   featured: z.boolean(),
   bestSeller: z.boolean(),
@@ -177,8 +174,6 @@ export const editProductFormSchema = z.object({
   slug: z.string(),
   description: z.string(),
   madeIn: z.string(),
-  price: z.number().min(0.01, "Price must be greater than 0"),
-  stock: z.number().int().min(0, "Stock cannot be negative"),
   sku: z.string(),
   images: z.array(z.string().url()).min(1, "At least one image required").max(5),
   categoryId: z.string().min(1, "Category is required"),
@@ -233,14 +228,11 @@ export const addProductSchema = z.object({
   slug: z.string().min(1),
   description: z.array(z.string()),
   madeIn: z.string().nullable(),
-  price: z.number().min(0.01),
-  stock: z.number().int().min(0),
   sku: z.string().optional(),
   images: z.array(z.string().url()).min(1, "At least one image required").max(5),
   categoryId: z.string(),
   familyId: z.string().optional(),
   brandId: z.string().nullable(),
-  isActive: z.boolean(),
   archived: z.boolean(),
   featured: z.boolean(),
   bestSeller: z.boolean(),
@@ -267,8 +259,6 @@ export const updateProductSchema = z.object({
   archived: z.boolean(),
   featured: z.boolean(),
   bestSeller: z.boolean(),
-  price: z.number().min(0.01),
-  stock: z.number().int().min(0),
   sku: z.string().nullable().optional(),
   attributes: productAttributesSchema,
   specGroups: productSpecGroupsSchema,
@@ -330,3 +320,25 @@ export const createPurchaseInvoiceFormSchema = z
       path: ["lines"],
     },
   );
+
+const yyyyMmDd = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+  .refine((v) => {
+    const d = new Date(v);
+    return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, "Invalid calendar date");
+
+export const salesQuerySchema = z.object({
+  from: z.preprocess((v) => (v === "" ? undefined : v), yyyyMmDd.optional().nullable()),
+  to: z.preprocess((v) => (v === "" ? undefined : v), yyyyMmDd.optional().nullable()),
+  granularity: z.enum(["day", "week", "month"]).optional().default("day"),
+  deliveredOnly: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
+  sortBy: z.enum(["profit", "revenue", "qty"]).optional().default("profit"),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+});
+
+export type SalesQuery = z.infer<typeof salesQuerySchema>;

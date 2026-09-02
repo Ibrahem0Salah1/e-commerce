@@ -16,8 +16,8 @@ export function BoolField({
   name,
   label,
 }: {
-  control: Control<AddProductForm>;
-  name: keyof AddProductForm;
+  control: Control<any>;
+  name: string;
   label: string;
 }) {
   return (

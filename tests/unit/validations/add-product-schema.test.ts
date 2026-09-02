@@ -10,14 +10,11 @@ const validForm = () => ({
   slug: "amalgam-a1-2g",
   description: "Line one\nLine two",
   madeIn: "Germany",
-  price: 120,
-  stock: 15,
   sku: "AMG-1",
   images: ["https://r2.example.com/a.jpg"],
   categoryId: "cat1",
   familyId: "fam1",
   brandId: "br1",
-  isActive: true,
   archived: false,
   featured: false,
   bestSeller: false,
@@ -61,19 +58,15 @@ describe("addProductFormSchema (client form)", () => {
     ).toBe(false);
   });
 
-  it("rejects a zero or negative price", () => {
-    expect(
-      addProductFormSchema.safeParse({ ...validForm(), price: 0 }).success,
-    ).toBe(false);
-    expect(
-      addProductFormSchema.safeParse({ ...validForm(), price: -1 }).success,
-    ).toBe(false);
-  });
-
-  it("rejects negative stock", () => {
-    expect(
-      addProductFormSchema.safeParse({ ...validForm(), stock: -1 }).success,
-    ).toBe(false);
+  it("ignores price/stock — they are managed via restock, not creation", () => {
+    // New products are created inactive with 0 price/stock; form no longer accepts those fields.
+    const withPricing = { ...validForm(), price: 0, stock: -1 } as Record<string, unknown>;
+    const result = addProductFormSchema.safeParse(withPricing);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("price");
+      expect(result.data).not.toHaveProperty("stock");
+    }
   });
 
   it("accepts an empty sku", () => {
@@ -98,14 +91,11 @@ describe("addProductSchema (server payload)", () => {
     slug: "amalgam-a1-2g",
     description: ["Line one", "Line two"],
     madeIn: "Germany",
-    price: 120,
-    stock: 15,
     sku: "AMG-1",
     images: ["https://r2.example.com/a.jpg"],
     categoryId: "cat1",
     familyId: "fam1",
     brandId: "br1",
-    isActive: true,
     archived: false,
     featured: false,
     bestSeller: false,

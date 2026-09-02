@@ -104,6 +104,8 @@ export async function getAdminProductBySlug(
     category: product.family?.category ?? null,
     family: product.family ? { id: product.family.id, name: product.family.name, slug: product.family.slug } : null,
     price: Number(product.price),
+    costPrice: product.costPrice !== null ? Number(product.costPrice) : null,
+    marginPercent: product.marginPercent !== null ? Number(product.marginPercent) : null,
     stock: Number(product.stock),
   };
 
