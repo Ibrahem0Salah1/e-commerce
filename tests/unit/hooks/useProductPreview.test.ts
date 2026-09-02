@@ -37,14 +37,11 @@ const defaults = (): AddProductForm => ({
   slug: "",
   description: "",
   madeIn: "",
-  price: 0,
-  stock: 0,
   sku: "",
   images: [],
   categoryId: "",
   familyId: "",
   brandId: "",
-  isActive: true,
   archived: false,
   featured: false,
   bestSeller: false,
@@ -95,8 +92,6 @@ describe("useProductPreview", () => {
 
     await act(async () => {
       formResult.current.setValue("name", "Amalgam A1 2g");
-      formResult.current.setValue("price", 99.5);
-      formResult.current.setValue("stock", 4);
       formResult.current.setValue("sku", "  SKU-9  ");
       formResult.current.setValue("description", "Line one\n\nLine two");
       formResult.current.setValue("images", ["https://r2.example.com/a.jpg"]);
@@ -113,8 +108,9 @@ describe("useProductPreview", () => {
 
     expect(result.current.slug).toBe("amalgam-a1-2g");
     expect(result.current.description).toEqual(["Line one", "Line two"]);
-    expect(result.current.price).toBe(99.5);
-    expect(result.current.stock).toBe(4);
+    // pricing is now 0 / not set via form — set via restock only
+    expect(result.current.price).toBe(0);
+    expect(result.current.stock).toBe(0);
     expect(result.current.sku).toBe("SKU-9");
     expect(result.current.madeIn).toBe("Germany");
     expect(result.current.brandName).toBe("Dentsply");

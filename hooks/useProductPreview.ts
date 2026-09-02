@@ -42,8 +42,6 @@ export function useProductPreview({
 }): PreviewProduct {
 
   const name = useWatch({ control, name: "name" });
-  const price = useWatch({ control, name: "price" });
-  const stock = useWatch({ control, name: "stock" });
   const sku = useWatch({ control, name: "sku" });
   const description = useWatch({ control, name: "description" });
   const images = useWatch({ control, name: "images" });
@@ -110,8 +108,8 @@ export function useProductPreview({
       name: name ?? "",
       slug: name ? slugify(name) : "",
       description: descriptionLines,
-      price: typeof price === "number" ? price : 0,
-      stock: typeof stock === "number" ? stock : 0,
+      price: 0,
+      stock: 0,
       sku: sku?.trim() || undefined,
       images: images ?? [],
       madeIn: madeIn?.trim() || null,
@@ -122,8 +120,6 @@ export function useProductPreview({
     };
   }, [
     name,
-    price,
-    stock,
     sku,
     description,
     images,

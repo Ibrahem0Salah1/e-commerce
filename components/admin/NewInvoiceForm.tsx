@@ -18,6 +18,7 @@ type ProductOption = {
   id: string;
   name: string;
   stock: number | null;
+  isActive: boolean;
   // images: string[];
 };
 
@@ -123,7 +124,7 @@ export function NewInvoiceForm({ products }: { products: ProductOption[] }) {
                   <option value="">Select a product...</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} (stock: {p.stock ?? 0})
+                      {p.name} (stock: {p.stock ?? 0}){!p.isActive ? " — inactive" : ""}
                     </option>
                   ))}
                 </select>

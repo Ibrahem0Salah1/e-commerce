@@ -93,11 +93,13 @@ model Session {
 }
 
 model TwoFactor {
-  id          String  @id @default(cuid())
-  userId      String  @unique
-  secret      String
-  backupCodes String
-  verified    Boolean @default(true)
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  secret                  String
+  backupCodes             String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -477,6 +479,8 @@ model Order {
   @@index([userId])
   @@index([status, createdAt])
   @@index([shippingMethodId])
+  @@index([paymentStatus, paidAt])
+  @@index([paidAt])
   @@map("orders")
 }
 

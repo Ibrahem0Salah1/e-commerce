@@ -1,37 +1,56 @@
-// lib/redis.ts
-
+// lib/config/redis.ts — lazy, never throws at import.
+// If UPSTASH env is missing, caching becomes a no-op so pages still SSR/build in preview envs.
 import { Redis } from "@upstash/redis";
 
-if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-  throw new Error("Missing Upstash Redis environment variables");
+const hasRedisEnv =
+  !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
+let _redis: Redis | null = null;
+
+function getRedis(): Redis | null {
+  if (!hasRedisEnv) return null;
+  if (_redis) return _redis;
+  _redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  });
+  return _redis;
 }
 
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+export const redis: Redis = new Proxy({} as unknown as Redis, {
+  get(_target, prop) {
+    const r = getRedis();
+    if (!r) throw new Error("Redis not configured — missing UPSTASH_REDIS_REST_URL/TOKEN");
+    const v = (r as unknown as Record<string, unknown>)[prop as string];
+    return typeof v === "function" ? (v as (...a: unknown[]) => unknown).bind(r) : v;
+  },
+}) as Redis;
+
+export { hasRedisEnv, getRedis };
 
 export async function getCached<T>(
   key: string,
   fetcher: () => Promise<T>,
   ttlSeconds: number = 3600,
 ): Promise<T> {
+  const r = getRedis();
+  if (!r) return fetcher(); // no cache available — direct fetch
   try {
-    const cached = await redis.get<T>(key);
+    const cached = await r.get<T>(key);
     if (cached !== null && cached !== undefined) {
-      console.log(`[Cache HIT] ${key}`);
+      if (process.env.NODE_ENV !== "production") console.log(`[Cache HIT] ${key}`);
       return cached;
     }
   } catch (err) {
     console.error(`[Cache ERROR] ${key}:`, err);
   }
 
-  console.log(`[Cache MISS] ${key}`);
+  if (process.env.NODE_ENV !== "production") console.log(`[Cache MISS] ${key}`);
   const data = await fetcher();
 
   try {
-    await redis.setex(key, ttlSeconds, data);
-    console.log(`[Cache SET] ${key} (TTL: ${ttlSeconds}s)`);
+    await r.setex(key, ttlSeconds, data);
+    if (process.env.NODE_ENV !== "production") console.log(`[Cache SET] ${key} (TTL: ${ttlSeconds}s)`);
   } catch (err) {
     console.error(`[Cache SET ERROR] ${key}:`, err);
   }
@@ -44,30 +63,36 @@ export async function setCache<T>(
   data: T,
   ttlSeconds: number = 3600,
 ): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
   try {
-    await redis.setex(key, ttlSeconds, data);
-    console.log(`[Cache SET] ${key} (TTL: ${ttlSeconds}s)`);
+    await r.setex(key, ttlSeconds, data);
+    if (process.env.NODE_ENV !== "production") console.log(`[Cache SET] ${key} (TTL: ${ttlSeconds}s)`);
   } catch (err) {
     console.error(`[Cache SET ERROR] ${key}:`, err);
   }
 }
 
 export async function invalidateCache(key: string): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
   try {
-    await redis.del(key);
-    console.log(`[Cache INVALIDATED] ${key}`);
+    await r.del(key);
+    if (process.env.NODE_ENV !== "production") console.log(`[Cache INVALIDATED] ${key}`);
   } catch (err) {
     console.error(`[Cache INVALIDATE ERROR] ${key}:`, err);
   }
 }
 
 export async function invalidatePattern(pattern: string): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
   try {
     let cursor = "0";
     const keysToDelete: string[] = [];
 
     do {
-      const [nextCursor, keys] = await redis.scan(cursor, {
+      const [nextCursor, keys] = await r.scan(cursor, {
         match: pattern,
         count: 100,
       });
@@ -76,9 +101,10 @@ export async function invalidatePattern(pattern: string): Promise<void> {
     } while (cursor !== "0");
 
     if (keysToDelete.length > 0) {
-      await redis.del(...keysToDelete);
-      console.log(`[Cache INVALIDATED PATTERN] ${pattern} (${keysToDelete.length} keys)`);
-    } else {
+      await r.del(...keysToDelete);
+      if (process.env.NODE_ENV !== "production")
+        console.log(`[Cache INVALIDATED PATTERN] ${pattern} (${keysToDelete.length} keys)`);
+    } else if (process.env.NODE_ENV !== "production") {
       console.log(`[Cache INVALIDATED PATTERN] ${pattern} (0 keys)`);
     }
   } catch (err) {

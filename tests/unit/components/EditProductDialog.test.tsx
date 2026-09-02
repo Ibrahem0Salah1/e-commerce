@@ -138,9 +138,10 @@ describe("EditProductDialog", () => {
 
     expect(screen.getByLabelText("Product Name")).toHaveValue("Amalgam Capsule");
     expect(screen.getByLabelText("Description")).toHaveValue("Line one\nLine two");
-    expect(screen.getByLabelText("Price (EGP)")).toHaveValue(120);
-    expect(screen.getByLabelText("Stock")).toHaveValue(15);
     expect(screen.getByLabelText("SKU")).toHaveValue("AMG-1");
+    // pricing is now read-only via restock, not editable inputs
+    expect(screen.getByText("Selling Price")).toBeInTheDocument();
+    expect(screen.getByText("120 EGP")).toBeInTheDocument();
   });
 
   it("locks the slug and shows the current slug", async () => {

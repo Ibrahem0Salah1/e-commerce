@@ -25,10 +25,16 @@ export async function getShippingMethods(): Promise<ShippingMethodOption[]> {
 
 export async function getCustomerOrders(
   userId: string,
+  opts?: { limit?: number; offset?: number },
 ): Promise<CustomerOrderSummary[]> {
+  // cap to prevent OOM if user has hundreds of orders; pagination will extend later
+  const limit = Math.min(100, Math.max(1, opts?.limit ?? 50));
+  const offset = Math.max(0, opts?.offset ?? 0);
   const orders = await prisma.order.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
+    take: limit,
+    skip: offset,
     include: {
       items: {
         include: {
@@ -59,7 +65,8 @@ export async function getCustomerOrders(
       variantName: i.variantName,
       unitPrice: Number(i.unitPrice),
       totalPrice: Number(i.totalPrice),
-      costPriceAtSale: i.costPriceAtSale ? Number(i.costPriceAtSale) : null,
+      // NEVER expose costPriceAtSale to customers — internal only
+      costPriceAtSale: null,
       quantity: i.quantity,
       product: i.product
         ? {
@@ -109,7 +116,8 @@ export async function getCustomerOrderDetail(
       variantName: i.variantName,
       unitPrice: Number(i.unitPrice),
       totalPrice: Number(i.totalPrice),
-      costPriceAtSale: i.costPriceAtSale ? Number(i.costPriceAtSale) : null,
+      // customer must never see cost
+      costPriceAtSale: null,
       quantity: i.quantity,
       product: i.product
         ? {

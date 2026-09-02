@@ -8,12 +8,13 @@ import { AdminRules } from "@/components/admin/AdminRules";
 
 export default async function RestockPage() {
   const products = await prisma.product.findMany({
-    where: { isActive: true, archived: false },
+    where: { archived: false },
     orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
       stock: true,
+      isActive: true,
       // price: true,
       // images: true,
     },

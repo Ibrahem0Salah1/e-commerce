@@ -1,7 +1,6 @@
 "use client";
 
 import { useFormContext, useFieldArray } from "react-hook-form";
-import type { AddProductForm } from "@/lib/validations";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ProductImageUploader } from "./ProductImageUploader";
@@ -9,9 +8,9 @@ import { SpecGroupEditor } from "./SpecGroupEditor";
 import { BoolField } from "./BoolField";
 import { FileText, ImageIcon, Info, ListTree, Plus } from "lucide-react";
 
-export function MetadataSection() {
+export function MetadataSection({ variant = "create" }: { variant?: "create" | "edit" }) {
   const { control, register, setValue, watch, formState } =
-    useFormContext<AddProductForm>();
+    useFormContext<any>();
   const errors = formState.errors;
 
   const watchedImages = watch("images");
@@ -103,9 +102,9 @@ export function MetadataSection() {
           }
           maxFiles={5}
         />
-        {errors.images && (
+        {(errors as any).images && (
           <p className="mt-1 text-xs text-destructive">
-            {errors.images.message}
+            {(errors as any).images.message as string}
           </p>
         )}
         <Helper text="Upload up to 5 images. First image is the cover. Drag & drop or click to upload." />
@@ -117,12 +116,25 @@ export function MetadataSection() {
           <Info className="h-4 w-4 text-muted-foreground" />
           Status & Visibility
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <BoolField control={control} name="isActive" label="Active" />
-          <BoolField control={control} name="featured" label="Featured" />
-          <BoolField control={control} name="bestSeller" label="Best Seller" />
-          <BoolField control={control} name="archived" label="Archived" />
-        </div>
+        {variant === "create" ? (
+          <>
+            <p className="mb-3 text-xs text-muted-foreground">
+              New products are created <strong>inactive</strong> with 0 stock. Restock the product to set pricing and auto-activate it.
+            </p>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <BoolField control={control} name="featured" label="Featured" />
+              <BoolField control={control} name="bestSeller" label="Best Seller" />
+              <BoolField control={control} name="archived" label="Archived" />
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <BoolField control={control} name="isActive" label="Active" />
+            <BoolField control={control} name="featured" label="Featured" />
+            <BoolField control={control} name="bestSeller" label="Best Seller" />
+            <BoolField control={control} name="archived" label="Archived" />
+          </div>
+        )}
       </div>
     </div>
   );

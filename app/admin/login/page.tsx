@@ -17,7 +17,7 @@ export default async function AdminLoginPage({
 
   return (
     <AuthLayout
-      formSlot={<AdminSignIn callbackUrl={callbackUrl} />}
+      formSlot={<AdminSignIn callbackUrl={callbackUrl} hideSocial={true} />}
       illustrationSlot={<AnimatedComponent />}
       mobileBackgroundSlot={<AnimatedBackground />}
       header={

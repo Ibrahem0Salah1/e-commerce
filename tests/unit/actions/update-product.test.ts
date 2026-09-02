@@ -11,6 +11,7 @@ const {
     product: {
       create: vi.fn(),
       update: vi.fn(),
+      findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
     productAttributeValue: {
@@ -56,8 +57,6 @@ const validPayload = () => ({
   archived: false,
   featured: false,
   bestSeller: true,
-  price: 120,
-  stock: 15,
   sku: "AMG-1",
   attributes: [{ attributeTypeId: "t1", attributeValueId: "v1" }],
   specGroups: [
@@ -69,6 +68,7 @@ describe("updateProductAndInvalidate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requireAdminMock.mockResolvedValue({ user: { id: "admin", role: "ADMIN" } });
+    prismaMock.product.findUnique.mockResolvedValue({ costPrice: 10, isActive: true });
     prismaMock.$transaction.mockImplementation(
       (cb: (tx: typeof prismaMock) => Promise<unknown>) => cb(prismaMock),
     );

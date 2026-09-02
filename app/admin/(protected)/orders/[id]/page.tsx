@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getAdminOrderDetail } from "@/lib/orders/queries";
 import { formatNumber } from "@/lib/utils/format";
-import { buildWhatsAppLink } from "@/lib/utils/phone";
+import { buildWhatsAppLink, buildOrderWhatsAppMessage } from "@/lib/utils/phone";
 import {
   OrderStatusBadge,
   PaymentStatusBadge,
@@ -235,10 +235,7 @@ export default async function AdminOrderDetailPage({
           className="cursor-pointer gap-2 border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
         >
           <a
-            href={buildWhatsAppLink(
-              order.shippingPhone,
-              `Hello ${order.shippingName}, this is MDS Dental Store regarding your order #${order.id.slice(-8).toUpperCase()}.`,
-            )}
+            href={buildWhatsAppLink(order.shippingPhone, buildOrderWhatsAppMessage(order))}
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -60,11 +60,11 @@ export function NewProductForm({ categories, brands, attributeTypes }: Props) {
           onNameManuallyEdited={setNameManuallyEdited}
         />
 
-        <PricingInventorySection />
+        <PricingInventorySection variant="create" />
 
         <AttributesSection attributeTypes={attributeTypes} />
 
-        <MetadataSection />
+        <MetadataSection variant="create" />
 
         <FormActions />
       </form>

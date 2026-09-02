@@ -74,11 +74,13 @@ export type ProductDetail = Omit<
 
 export type AdminProductDetail = Omit<
   AdminProductDetailRaw,
-  "family" | "price" | "stock" | "sku"
+  "family" | "price" | "costPrice" | "marginPercent" | "stock" | "sku"
 > & {
   category: { id: string; name: string; slug: string } | null;
   family: { id: string; name: string; slug: string } | null;
   price: number;
+  costPrice: number | null;
+  marginPercent: number | null;
   stock: number | null;
   sku: string | null;
 };
