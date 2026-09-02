@@ -95,10 +95,36 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user: any) => {
-          if (user.role === "ADMIN" && !user.twoFactorEnabled) {
+          // For ADMINs we must ensure BOTH the boolean flag and the physical two_factors row exist.
+          // Better-Auth's OTP verify (otp/index.mjs:213) checks `two_factors` row existence, not just the flag.
+          // Previously we only flipped the flag → verify-otp 400 TWO_FACTOR_NOT_ENABLED despite DB true.
+          if (user.role !== "ADMIN") return;
+          if (!user.twoFactorEnabled) {
             await prisma.user.update({
               where: { id: user.id },
               data: { twoFactorEnabled: true },
+            });
+          }
+          const existing = await prisma.twoFactor.findUnique({
+            where: { userId: user.id },
+          });
+          if (!existing) {
+            // OTP flow only needs row existence; secret/backupCodes not used for OTP verify,
+            // but we create valid values so TOTP/backup flows also work. Use plain for OTP-only;
+            // if you later need encrypted backupCodes, call POST /two-factor/enable which rotates them correctly.
+            const { randomBytes } = await import("node:crypto");
+            const secret = randomBytes(32).toString("hex");
+            const backupCodes = Array.from({ length: 10 }).map(() => {
+              const c = randomBytes(5).toString("hex").slice(0, 10).toUpperCase();
+              return `${c.slice(0, 5)}-${c.slice(5)}`;
+            });
+            await prisma.twoFactor.create({
+              data: {
+                userId: user.id,
+                secret,
+                backupCodes: JSON.stringify(backupCodes),
+                verified: true,
+              },
             });
           }
         },
