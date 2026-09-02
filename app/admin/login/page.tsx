@@ -7,9 +7,15 @@ import Image from "next/image";
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  // Strip sensitive query params if present (e.g. ?email=&password= leak from old builds / browser history)
+  if (params.email || params.password) {
+    const { redirect } = await import("next/navigation");
+    const clean = params.callbackUrl ? `/admin/login?callbackUrl=${encodeURIComponent(params.callbackUrl)}` : "/admin/login";
+    redirect(clean);
+  }
   const callbackUrl =
     params.callbackUrl?.startsWith("/admin") && !params.callbackUrl.startsWith("//")
       ? params.callbackUrl
