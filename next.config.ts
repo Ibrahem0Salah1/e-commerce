@@ -42,14 +42,6 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "mds-woad.vercel.app", // your custom R2 domain
       },
-      {
-        protocol: "https",
-        hostname: "storage.googleapis.com",
-      },
-      {
-        protocol: "https",
-        hostname: "toothpickapp.ams3.digitaloceanspaces.com",
-      },
     ],
   },
 };
